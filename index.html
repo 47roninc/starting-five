@@ -46,9 +46,17 @@
         .players-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            max-width: 100%;
             gap: 20px;
             margin-bottom: 20px;
         }
+        
+        @media (min-width: 800px) {
+            .players-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
 
         .player-area {
             background: rgba(255,255,255,0.05);
@@ -62,6 +70,21 @@
         .player-area.active {
             border-color: #ffd700;
             box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+
+        .player-area.winner {
+            border-color: #FFD700;
+            box-shadow: 0 0 30px rgba(255,215,0,0.9), 0 0 60px rgba(255,215,0,0.6);
+            animation: winnerPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes winnerPulse {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(255,215,0,0.9), 0 0 60px rgba(255,215,0,0.6);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255,215,0,1), 0 0 80px rgba(255,215,0,0.8);
+            }
         }
 
         .player-header {
@@ -466,7 +489,7 @@
             <div class="players-container" id="playersContainer"></div>
 
             <div class="burn-pile">
-                <h3>Burn Pile (Last 5 Cards)</h3>
+                <h3>Burn Pile (Last 10 Cards)</h3>
                 <div id="burnPile" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px;"></div>
             </div>
         </div>
@@ -547,7 +570,7 @@
             { name: "Charles Barkley", positions: ["PF"], primary: "PHI", era: "4, 5", ovr: 89, rank: 24 },
             { name: "Oscar Robertson", positions: ["PG"], primary: "SAC", era: "2, 3", ovr: 89, rank: 25 },
             { name: "James Harden", positions: ["SG"], primary: "HOU", era: "7", ovr: 88, rank: 26 },
-            { name: "Bob Pettit", positions: ["PF"], primary: "STL", era: "2", ovr: 88, rank: 27 },
+            { name: "Bob Pettit", positions: ["PF"], primary: "ATL", era: "2", ovr: 88, rank: 27 },
             { name: "Dwyane Wade", positions: ["SG"], primary: "MIA", era: "6, 7", ovr: 88, rank: 28 },
             { name: "Bob Cousy", positions: ["PG"], primary: "BOS", era: "1, 2", ovr: 88, rank: 29 },
             { name: "Moses Malone", positions: ["C"], primary: "HOU", era: "3, 4", ovr: 88, rank: 30 },
@@ -573,7 +596,7 @@
             { name: "Ben Wallace", positions: ["C"], primary: "DET", era: "5, 6", ovr: 83, rank: 50 },
             { name: "Jimmy Butler", positions: ["SF"], primary: "MIA", era: "7", ovr: 83, rank: 51 },
             { name: "Bill Sharman", positions: ["SG"], primary: "BOS", era: "1, 2", ovr: 83, rank: 52 },
-            { name: "Elvin Hayes", positions: ["PF"], primary: "WSB", era: "3, 4", ovr: 83, rank: 53 },
+            { name: "Elvin Hayes", positions: ["PF"], primary: "WAS", era: "3, 4", ovr: 83, rank: 53 },
             { name: "Joel Embiid", positions: ["C"], primary: "PHI", era: "7", ovr: 83, rank: 54 },
             { name: "Damian Lillard", positions: ["PG"], primary: "POR", era: "7", ovr: 83, rank: 55 },
             { name: "Willis Reed", positions: ["C"], primary: "NYK", era: "3", ovr: 83, rank: 56 },
@@ -591,28 +614,28 @@
             { name: "Draymond Green", positions: ["PF"], primary: "GSW", era: "7", ovr: 82, rank: 68 },
             { name: "Rick Barry", positions: ["SF"], primary: "GSW", era: "3", ovr: 82, rank: 69 },
             { name: "Kevin McHale", positions: ["PF"], primary: "BOS", era: "4", ovr: 81, rank: 70 },
-            { name: "Paul Arizin", positions: ["SF"], primary: "PHW", era: "1, 2", ovr: 81, rank: 71 },
+            { name: "Paul Arizin", positions: ["SF"], primary: "GSW", era: "1, 2", ovr: 81, rank: 71 },
             { name: "Robert Parish", positions: ["C"], primary: "BOS", era: "4, 5", ovr: 81, rank: 72 },
             { name: "Reggie Miller", positions: ["SG"], primary: "IND", era: "4, 5", ovr: 81, rank: 73 },
             { name: "Chauncey Billups", positions: ["PG"], primary: "DET", era: "5, 6", ovr: 81, rank: 74 },
             { name: "Kyrie Irving", positions: ["PG"], primary: "CLE", era: "7", ovr: 81, rank: 75 },
             { name: "Dave Cowens", positions: ["C"], primary: "BOS", era: "3", ovr: 81, rank: 76 },
-            { name: "Vern Mikkelsen", positions: ["PF"], primary: "MNL", era: "1", ovr: 81, rank: 77 },
+            { name: "Vern Mikkelsen", positions: ["PF"], primary: "LAL", era: "1", ovr: 81, rank: 77 },
             { name: "Tony Parker", positions: ["PG"], primary: "SAS", era: "6, 7", ovr: 81, rank: 78 },
             { name: "Luka Dončić", positions: ["PG"], primary: "DAL", era: "7", ovr: 81, rank: 79 },
             { name: "George Gervin", positions: ["SG"], primary: "SAS", era: "4", ovr: 81, rank: 80 },
             { name: "Jayson Tatum", positions: ["SF"], primary: "BOS", era: "7", ovr: 81, rank: 81 },
-            { name: "Neil Johnston", positions: ["C"], primary: "PHW", era: "1", ovr: 81, rank: 82 },
+            { name: "Neil Johnston", positions: ["C"], primary: "GSW", era: "1", ovr: 81, rank: 82 },
             { name: "Shai Gilgeous-Alexander", positions: ["PG"], primary: "OKC", era: "7", ovr: 80, rank: 83 },
             { name: "Carmelo Anthony", positions: ["SF"], primary: "DEN", era: "6, 7", ovr: 80, rank: 84 },
             { name: "Dennis Rodman", positions: ["PF"], primary: "DET", era: "4, 5", ovr: 80, rank: 85 },
-            { name: "Wes Unseld", positions: ["C"], primary: "WSB", era: "3", ovr: 80, rank: 86 },
+            { name: "Wes Unseld", positions: ["C"], primary: "WAS", era: "3", ovr: 80, rank: 86 },
             { name: "James Worthy", positions: ["SF"], primary: "LAL", era: "4", ovr: 80, rank: 87 },
             { name: "Ed Macauley", positions: ["C"], primary: "BOS", era: "1", ovr: 80, rank: 88 },
             { name: "Dennis Johnson", positions: ["PG"], primary: "BOS", era: "4", ovr: 80, rank: 89 },
             { name: "Alonzo Mourning", positions: ["C"], primary: "MIA", era: "5, 6", ovr: 80, rank: 90 },
-            { name: "Jerry Lucas", positions: ["PF"], primary: "CIN", era: "3", ovr: 80, rank: 91 },
-            { name: "Slater Martin", positions: ["PG"], primary: "MNL", era: "1", ovr: 80, rank: 92 },
+            { name: "Jerry Lucas", positions: ["PF"], primary: "SAC", era: "3", ovr: 80, rank: 91 },
+            { name: "Slater Martin", positions: ["PG"], primary: "LAL", era: "1", ovr: 80, rank: 92 },
             { name: "Chris Bosh", positions: ["C"], primary: "TOR", era: "6", ovr: 80, rank: 93 },
             { name: "Al Horford", positions: ["C"], primary: "ATL", era: "6, 7", ovr: 80, rank: 94 },
             { name: "Grant Hill", positions: ["SF"], primary: "DET", era: "5, 6", ovr: 79, rank: 95 },
@@ -624,7 +647,7 @@
             { name: "Bailey Howell", positions: ["PF"], primary: "DET", era: "2", ovr: 79, rank: 101 },
             { name: "Chris Webber", positions: ["PF"], primary: "SAC", era: "5, 6", ovr: 79, rank: 102 },
             { name: "LaMarcus Aldridge", positions: ["PF"], primary: "POR", era: "6, 7", ovr: 79, rank: 103 },
-            { name: "Bob McAdoo", positions: ["C"], primary: "BUF", era: "3, 4", ovr: 79, rank: 104 },
+            { name: "Bob McAdoo", positions: ["C"], primary: "LAC", era: "3, 4", ovr: 79, rank: 104 },
             { name: "Bill Walton", positions: ["C"], primary: "POR", era: "3, 4", ovr: 79, rank: 105 },
             { name: "Bobby Jones", positions: ["PF"], primary: "PHI", era: "4", ovr: 79, rank: 106 },
             { name: "Adrian Dantley", positions: ["SF"], primary: "UTA", era: "4", ovr: 79, rank: 107 },
@@ -643,41 +666,41 @@
             { name: "Chris Mullin", positions: ["SF"], primary: "GSW", era: "4, 5", ovr: 78, rank: 120 },
             { name: "Karl-Anthony Towns", positions: ["C"], primary: "MIN", era: "7", ovr: 78, rank: 121 },
             { name: "Paul Westphal", positions: ["SG"], primary: "PHO", era: "3, 4", ovr: 78, rank: 122 },
-            { name: "Cliff Hagan", positions: ["SF"], primary: "STL", era: "2", ovr: 78, rank: 123 },
+            { name: "Cliff Hagan", positions: ["SF"], primary: "ATL", era: "2", ovr: 78, rank: 123 },
             { name: "Michael Cooper", positions: ["SG"], primary: "LAL", era: "4", ovr: 78, rank: 124 },
-            { name: "Larry Foust", positions: ["C"], primary: "FTW", era: "1, 2", ovr: 78, rank: 125 },
+            { name: "Larry Foust", positions: ["C"], primary: "DET", era: "1, 2", ovr: 78, rank: 125 },
             { name: "Kevin Love", positions: ["PF"], primary: "CLE", era: "6, 7", ovr: 78, rank: 126 },
             { name: "Mitch Richmond", positions: ["SG"], primary: "SAC", era: "5", ovr: 78, rank: 127 },
-            { name: "Jim Pollard", positions: ["SF"], primary: "MNL", era: "1", ovr: 78, rank: 128 },
+            { name: "Jim Pollard", positions: ["SF"], primary: "LAL", era: "1", ovr: 78, rank: 128 },
             { name: "Harry Gallatin", positions: ["PF"], primary: "NYK", era: "1", ovr: 78, rank: 129 },
             { name: "Dave DeBusschere", positions: ["PF"], primary: "DET", era: "2, 3", ovr: 78, rank: 130 },
             { name: "Marques Johnson", positions: ["SF"], primary: "MIL", era: "4", ovr: 78, rank: 131 },
             { name: "Mark Price", positions: ["PG"], primary: "CLE", era: "4, 5", ovr: 78, rank: 132 },
-            { name: "Bobby Wanzer", positions: ["SG"], primary: "ROC", era: "1", ovr: 78, rank: 133 },
+            { name: "Bobby Wanzer", positions: ["SG"], primary: "SAC", era: "1", ovr: 78, rank: 133 },
             { name: "Klay Thompson", positions: ["SG"], primary: "GSW", era: "7", ovr: 78, rank: 134 },
-            { name: "Clyde Lovellette", positions: ["C"], primary: "MNL", era: "2", ovr: 78, rank: 135 },
+            { name: "Clyde Lovellette", positions: ["C"], primary: "LAL", era: "2", ovr: 78, rank: 135 },
             { name: "Jo Jo White", positions: ["PG"], primary: "BOS", era: "3", ovr: 78, rank: 136 },
             { name: "Bob Dandridge", positions: ["SF"], primary: "MIL", era: "3", ovr: 77, rank: 137 },
-            { name: "Jack Sikma", positions: ["C"], primary: "SEA", era: "4", ovr: 77, rank: 138 },
+            { name: "Jack Sikma", positions: ["C"], primary: "OKC", era: "4", ovr: 77, rank: 138 },
             { name: "Frank Ramsey", positions: ["SG"], primary: "BOS", era: "2", ovr: 77, rank: 139 },
             { name: "Don Nelson", positions: ["SF"], primary: "BOS", era: "2, 3", ovr: 77, rank: 140 },
             { name: "Tom Sanders", positions: ["SF"], primary: "BOS", era: "2, 3", ovr: 77, rank: 141 },
             { name: "Rajon Rondo", positions: ["PG"], primary: "BOS", era: "6, 7", ovr: 77, rank: 142 },
             { name: "Donovan Mitchell", positions: ["SG"], primary: "UTA", era: "7", ovr: 77, rank: 143 },
-            { name: "Tiny Archibald", positions: ["PG"], primary: "KCK", era: "3, 4", ovr: 77, rank: 144 },
-            { name: "Bob Davies", positions: ["PG"], primary: "ROC", era: "1", ovr: 77, rank: 145 },
+            { name: "Tiny Archibald", positions: ["PG"], primary: "SAC", era: "3, 4", ovr: 77, rank: 144 },
+            { name: "Bob Davies", positions: ["PG"], primary: "SAC", era: "1", ovr: 77, rank: 145 },
             { name: "Rasheed Wallace", positions: ["PF"], primary: "POR", era: "5, 6", ovr: 77, rank: 146 },
-            { name: "George Yardley", positions: ["SF"], primary: "FTW", era: "2", ovr: 77, rank: 147 },
+            { name: "George Yardley", positions: ["SF"], primary: "DET", era: "2", ovr: 77, rank: 147 },
             { name: "Eddie Jones", positions: ["SG"], primary: "MIA", era: "5, 6", ovr: 77, rank: 148 },
             { name: "Anfernee Hardaway", positions: ["SG"], primary: "ORL", era: "5, 6", ovr: 77, rank: 149 },
             { name: "Billy Cunningham", positions: ["SF"], primary: "PHI", era: "3", ovr: 77, rank: 150 },
             { name: "Larry Nance", positions: ["PF"], primary: "CLE", era: "4", ovr: 77, rank: 151 },
-            { name: "Shawn Kemp", positions: ["PF"], primary: "SEA", era: "5", ovr: 77, rank: 152 },
-            { name: "Gus Williams", positions: ["PG"], primary: "SEA", era: "4", ovr: 77, rank: 153 },
-            { name: "Lenny Wilkens", positions: ["PG"], primary: "STL", era: "2, 3", ovr: 77, rank: 154 },
+            { name: "Shawn Kemp", positions: ["PF"], primary: "OKC", era: "5", ovr: 77, rank: 152 },
+            { name: "Gus Williams", positions: ["PG"], primary: "OKC", era: "4", ovr: 77, rank: 153 },
+            { name: "Lenny Wilkens", positions: ["PG"], primary: "ATL", era: "2, 3", ovr: 77, rank: 154 },
             { name: "Paul Silas", positions: ["PF"], primary: "BOS", era: "3", ovr: 77, rank: 155 },
             { name: "DeMar DeRozan", positions: ["SG"], primary: "TOR", era: "7", ovr: 77, rank: 156 },
-            { name: "Walt Bellamy", positions: ["C"], primary: "BAL", era: "2, 3", ovr: 77, rank: 157 },
+            { name: "Walt Bellamy", positions: ["C"], primary: "WAS", era: "2, 3", ovr: 77, rank: 157 },
             { name: "Bernard King", positions: ["SF"], primary: "NYK", era: "4", ovr: 77, rank: 158 },
             { name: "Richie Guerin", positions: ["SG"], primary: "NYK", era: "2", ovr: 77, rank: 159 },
             { name: "Alvin Robertson", positions: ["SG"], primary: "SAS", era: "4", ovr: 77, rank: 160 },
@@ -686,14 +709,14 @@
             { name: "Artis Gilmore", positions: ["C"], primary: "CHI", era: "4", ovr: 77, rank: 163 },
             { name: "Walter Davis", positions: ["SG"], primary: "PHO", era: "4", ovr: 76, rank: 164 },
             { name: "Nate Thurmond", positions: ["C"], primary: "GSW", era: "3", ovr: 76, rank: 165 },
-            { name: "Jack Twyman", positions: ["SF"], primary: "CIN", era: "2", ovr: 76, rank: 166 },
-            { name: "Larry Costello", positions: ["PG"], primary: "SYR", era: "2", ovr: 76, rank: 167 },
+            { name: "Jack Twyman", positions: ["SF"], primary: "SAC", era: "2", ovr: 76, rank: 166 },
+            { name: "Larry Costello", positions: ["PG"], primary: "PHI", era: "2", ovr: 76, rank: 167 },
             { name: "Dave Bing", positions: ["PG"], primary: "DET", era: "3", ovr: 76, rank: 168 },
             { name: "Ron Harper", positions: ["SG"], primary: "CHI", era: "4, 5", ovr: 76, rank: 169 },
             { name: "K.C. Jones", positions: ["PG"], primary: "BOS", era: "2", ovr: 76, rank: 170 },
             { name: "Terry Porter", positions: ["PG"], primary: "POR", era: "4, 5", ovr: 76, rank: 171 },
             { name: "DeAndre Jordan", positions: ["C"], primary: "LAC", era: "6, 7", ovr: 76, rank: 172 },
-            { name: "Lou Hudson", positions: ["SF"], primary: "STL", era: "3", ovr: 76, rank: 173 },
+            { name: "Lou Hudson", positions: ["SF"], primary: "ATL", era: "3", ovr: 76, rank: 173 },
             { name: "Jeff Hornacek", positions: ["SG"], primary: "UTA", era: "4, 5", ovr: 76, rank: 174 },
             { name: "Gail Goodrich", positions: ["SG"], primary: "LAL", era: "3", ovr: 76, rank: 175 },
             { name: "Sam Cassell", positions: ["PG"], primary: "MIL", era: "5, 6", ovr: 76, rank: 176 },
@@ -704,23 +727,23 @@
             { name: "Andrei Kirilenko", positions: ["SF"], primary: "UTA", era: "6", ovr: 76, rank: 181 },
             { name: "Domantas Sabonis", positions: ["C"], primary: "SAC", era: "7", ovr: 76, rank: 182 },
             { name: "Deron Williams", positions: ["PG"], primary: "UTA", era: "6", ovr: 76, rank: 183 },
-            { name: "Arnie Risen", positions: ["C"], primary: "ROC", era: "1", ovr: 76, rank: 184 },
+            { name: "Arnie Risen", positions: ["C"], primary: "SAC", era: "1", ovr: 76, rank: 184 },
             { name: "Peja Stojaković", positions: ["SF"], primary: "SAC", era: "5, 6", ovr: 76, rank: 185 },
             { name: "Jermaine O'Neal", positions: ["PF"], primary: "IND", era: "5, 6", ovr: 76, rank: 186 },
             { name: "Brad Daugherty", positions: ["C"], primary: "CLE", era: "4", ovr: 76, rank: 187 },
             { name: "Jamaal Wilkes", positions: ["SF"], primary: "LAL", era: "3, 4", ovr: 76, rank: 188 },
-            { name: "Detlef Schrempf", positions: ["SF"], primary: "SEA", era: "4, 5", ovr: 76, rank: 189 },
+            { name: "Detlef Schrempf", positions: ["SF"], primary: "OKC", era: "4, 5", ovr: 76, rank: 189 },
             { name: "Gilbert Arenas", positions: ["PG"], primary: "WAS", era: "6", ovr: 76, rank: 190 },
             { name: "Paul Millsap", positions: ["PF"], primary: "UTA", era: "6, 7", ovr: 76, rank: 191 },
             { name: "Joe Johnson", positions: ["SG"], primary: "ATL", era: "6, 7", ovr: 76, rank: 192 },
-            { name: "David West", positions: ["PF"], primary: "NOH", era: "6, 7", ovr: 76, rank: 193 },
+            { name: "David West", positions: ["PF"], primary: "NOP", era: "6, 7", ovr: 76, rank: 193 },
             { name: "Metta World Peace", positions: ["SF"], primary: "IND", era: "6", ovr: 76, rank: 194 },
             { name: "Toni Kukoč", positions: ["SF"], primary: "CHI", era: "5", ovr: 76, rank: 195 },
-            { name: "Andy Phillip", positions: ["PG"], primary: "FTW", era: "1", ovr: 76, rank: 196 },
+            { name: "Andy Phillip", positions: ["PG"], primary: "DET", era: "1", ovr: 76, rank: 196 },
             { name: "Bam Adebayo", positions: ["C"], primary: "MIA", era: "7", ovr: 75, rank: 197 },
             { name: "Mookie Blaylock", positions: ["PG"], primary: "ATL", era: "5", ovr: 75, rank: 198 },
             { name: "Dan Majerle", positions: ["SF"], primary: "PHO", era: "5", ovr: 75, rank: 199 },
-            { name: "Gus Johnson", positions: ["PF"], primary: "BAL", era: "3", ovr: 75, rank: 200 },
+            { name: "Gus Johnson", positions: ["PF"], primary: "WAS", era: "3", ovr: 75, rank: 200 },
             { name: "Pete Maravich", positions: ["SG"], primary: "ATL", era: "3", ovr: 75, rank: 201 },
             { name: "Elton Brand", positions: ["PF"], primary: "LAC", era: "6", ovr: 75, rank: 202 },
             { name: "Dick McGuire", positions: ["PG"], primary: "NYK", era: "1", ovr: 75, rank: 203 },
@@ -730,18 +753,18 @@
             { name: "Derrick Rose", positions: ["PG"], primary: "CHI", era: "6, 7", ovr: 75, rank: 207 },
             { name: "Mark Aguirre", positions: ["SF"], primary: "DAL", era: "4", ovr: 75, rank: 208 },
             { name: "John Wall", positions: ["PG"], primary: "WAS", era: "7", ovr: 75, rank: 209 },
-            { name: "Spencer Haywood", positions: ["PF"], primary: "SEA", era: "3", ovr: 75, rank: 210 },
+            { name: "Spencer Haywood", positions: ["PF"], primary: "OKC", era: "3", ovr: 75, rank: 210 },
             { name: "Tyson Chandler", positions: ["C"], primary: "NYK", era: "6, 7", ovr: 75, rank: 211 },
             { name: "Kemba Walker", positions: ["PG"], primary: "CHA", era: "7", ovr: 75, rank: 212 },
-            { name: "Joe Fulks", positions: ["PF"], primary: "PHW", era: "1", ovr: 75, rank: 213 },
+            { name: "Joe Fulks", positions: ["PF"], primary: "GSW", era: "1", ovr: 75, rank: 213 },
             { name: "Marcus Camby", positions: ["C"], primary: "DEN", era: "5, 6", ovr: 75, rank: 214 },
             { name: "Jalen Brunson", positions: ["PG"], primary: "NYK", era: "7", ovr: 75, rank: 215 },
             { name: "Max Zaslofsky", positions: ["SG"], primary: "CHS", era: "1", ovr: 75, rank: 216 },
             { name: "Jaylen Brown", positions: ["SF"], primary: "BOS", era: "7", ovr: 75, rank: 217 },
-            { name: "Buck Williams", positions: ["PF"], primary: "NJN", era: "4, 5", ovr: 75, rank: 218 },
+            { name: "Buck Williams", positions: ["PF"], primary: "BKN", era: "4, 5", ovr: 75, rank: 218 },
             { name: "Fat Lever", positions: ["PG"], primary: "DEN", era: "4", ovr: 75, rank: 219 },
-            { name: "Rashard Lewis", positions: ["SF"], primary: "SEA", era: "5, 6", ovr: 75, rank: 220 },
-            { name: "Tom Gola", positions: ["SG"], primary: "SFW", era: "2", ovr: 75, rank: 221 },
+            { name: "Rashard Lewis", positions: ["SF"], primary: "OKC", era: "5, 6", ovr: 75, rank: 220 },
+            { name: "Tom Gola", positions: ["SG"], primary: "GSW", era: "2", ovr: 75, rank: 221 },
             { name: "Baron Davis", positions: ["PG"], primary: "GSW", era: "6", ovr: 75, rank: 222 },
             { name: "Danny Green", positions: ["SG"], primary: "SAS", era: "7", ovr: 75, rank: 223 },
             { name: "DeMarcus Cousins", positions: ["C"], primary: "SAC", era: "7", ovr: 75, rank: 224 },
@@ -749,7 +772,7 @@
             { name: "Devin Booker", positions: ["SG"], primary: "PHO", era: "7", ovr: 75, rank: 226 },
             { name: "Vlade Divac", positions: ["C"], primary: "LAL", era: "5", ovr: 75, rank: 227 },
             { name: "Lamar Odom", positions: ["PF"], primary: "LAL", era: "6", ovr: 75, rank: 228 },
-            { name: "Brook Lopez", positions: ["C"], primary: "NJN", era: "6, 7", ovr: 75, rank: 229 },
+            { name: "Brook Lopez", positions: ["C"], primary: "BKN", era: "6, 7", ovr: 75, rank: 229 },
             { name: "Terry Cummings", positions: ["PF"], primary: "MIL", era: "4, 5", ovr: 75, rank: 230 },
             { name: "Rudy LaRusso", positions: ["PF"], primary: "LAL", era: "2", ovr: 75, rank: 231 },
             { name: "Trae Young", positions: ["PG"], primary: "ATL", era: "7", ovr: 75, rank: 232 },
@@ -757,7 +780,7 @@
             { name: "A.C. Green", positions: ["PF"], primary: "LAL", era: "4, 5", ovr: 75, rank: 234 },
             { name: "Bob Love", positions: ["PF"], primary: "CHI", era: "3", ovr: 75, rank: 235 },
             { name: "Shane Battier", positions: ["SF"], primary: "MEM", era: "6", ovr: 75, rank: 236 },
-            { name: "Brent Barry", positions: ["SG"], primary: "SEA", era: "5, 6", ovr: 75, rank: 237 },
+            { name: "Brent Barry", positions: ["SG"], primary: "OKC", era: "5, 6", ovr: 75, rank: 237 },
             { name: "Larry Siegfried", positions: ["PG"], primary: "BOS", era: "3", ovr: 75, rank: 238 },
             { name: "Terrell Brandon", positions: ["PG"], primary: "CLE", era: "5", ovr: 75, rank: 239 },
             { name: "Jason Terry", positions: ["SG"], primary: "DAL", era: "6, 7", ovr: 75, rank: 240 },
@@ -846,12 +869,13 @@
                     const card = player.lineup[pos];
                     if (card) {
                         let cardColor = '';
-                        if (card.ovr >= 95) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)';
-                        else if (card.ovr >= 90) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)';
-                        else if (card.ovr >= 85) cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)';
-                        else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #4169E1 0%, #1E90FF 100%)';
-                        else if (card.ovr >= 75) cardColor = 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)';
-                        else cardColor = 'linear-gradient(135deg, #808080 0%, #696969 100%)';
+                        if (card.ovr >= 92) cardColor = 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)'; // Amethyst
+                        else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
+                        else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
+                        else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
+                        else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
+                        else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                        else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                         
                         const penalty = !card.positions.includes(pos) ? calculatePositionPenalty(card, pos) : 0;
                         
@@ -971,13 +995,15 @@
         function showCardIndex() {
             const modal = document.getElementById('modalBody');
             
-            // Group cards by OVR tier
+            // Group cards by OVR tier with new rarity names
             const tiers = {
-                'Legendary (95-100)': CARDS.filter(c => c.ovr >= 95),
-                'Elite (90-94)': CARDS.filter(c => c.ovr >= 90 && c.ovr < 95),
-                'All-Star (85-89)': CARDS.filter(c => c.ovr >= 85 && c.ovr < 90),
-                'Starter (80-84)': CARDS.filter(c => c.ovr >= 80 && c.ovr < 85),
-                'Role Player (75-79)': CARDS.filter(c => c.ovr >= 75 && c.ovr < 80)
+                'Amethyst (92+)': CARDS.filter(c => c.ovr >= 92),
+                'Ruby (87-91)': CARDS.filter(c => c.ovr >= 87 && c.ovr < 92),
+                'Emerald (83-86)': CARDS.filter(c => c.ovr >= 83 && c.ovr < 87),
+                'Diamond (80-82)': CARDS.filter(c => c.ovr >= 80 && c.ovr < 83),
+                'Gold (78-79)': CARDS.filter(c => c.ovr >= 78 && c.ovr < 80),
+                'Silver (76-77)': CARDS.filter(c => c.ovr >= 76 && c.ovr < 78),
+                'Bronze (75)': CARDS.filter(c => c.ovr === 75)
             };
             
             let html = '<div style="max-height: 500px; overflow-y: auto;">';
@@ -988,11 +1014,13 @@
                 
                 cards.forEach(card => {
                     let cardColor = '';
-                    if (card.ovr >= 95) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)';
-                    else if (card.ovr >= 90) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)';
-                    else if (card.ovr >= 85) cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)';
-                    else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #4169E1 0%, #1E90FF 100%)';
-                    else cardColor = 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)';
+                    if (card.ovr >= 92) cardColor = 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)'; // Amethyst
+                    else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
+                    else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
+                    else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
+                    else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
+                    else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                    else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                     
                     html += `
                         <div style="background: ${cardColor}; padding: 10px; border-radius: 8px; text-align: center; border: 2px solid rgba(255,255,255,0.3);">
@@ -1111,8 +1139,12 @@
             const playerDiv = document.createElement('div');
             playerDiv.className = 'player-area';
             
+            // Add winner class if this player won
+            if (gameState.phase === 'final' && gameState.winnerPlayerId === player.id) {
+                playerDiv.className += ' winner';
+            }
             // Highlight the player who needs to take action
-            if (gameState.playerNeedingAction === player.id) {
+            else if (gameState.playerNeedingAction === player.id) {
                 playerDiv.className += ' active';
             } else if (player.id === gameState.currentPlayerIndex && gameState.phase === 'playing' && gameState.playerNeedingAction === null) {
                 playerDiv.className += ' active';
@@ -1439,14 +1471,15 @@
                 const bonuses = calculatePotentialBonuses(player, card);
                 const hasBonuses = bonuses.total > 0;
                 
-                // Color based on OVR rating
+                // Color based on OVR rating - NEW RARITY SYSTEM
                 let cardColor = '';
-                if (card.ovr >= 95) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-                else if (card.ovr >= 90) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
-                else if (card.ovr >= 85) cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
-                else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #4169E1 0%, #1E90FF 100%)'; // Blue
-                else if (card.ovr >= 75) cardColor = 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)'; // Green
-                else cardColor = 'linear-gradient(135deg, #808080 0%, #696969 100%)'; // Gray
+                if (card.ovr >= 92) cardColor = 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)'; // Amethyst
+                else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
+                else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
+                else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
+                else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
+                else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                 
                 cardDiv.style.background = cardColor;
                 
@@ -1494,8 +1527,8 @@
             const player = gameState.players[playerId];
             player.hand = player.hand.filter(c => c !== card);
             gameState.burnPile.unshift(card);
-            if (gameState.burnPile.length > 5) {
-                gameState.burnPile = gameState.burnPile.slice(0, 5);
+            if (gameState.burnPile.length > 10) {
+                gameState.burnPile = gameState.burnPile.slice(0, 10);
             }
             gameState.waitingForBurn = null;
             gameState.selectedCard = null;
@@ -1551,14 +1584,15 @@
             const cardDiv = document.createElement('div');
             cardDiv.className = `card ${card.positions[0].toLowerCase()}`;
             
-            // Color based on OVR rating
+            // Color based on OVR rating - NEW RARITY SYSTEM
             let cardColor = '';
-            if (card.ovr >= 95) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-            else if (card.ovr >= 90) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
-            else if (card.ovr >= 85) cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
-            else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #4169E1 0%, #1E90FF 100%)'; // Blue
-            else if (card.ovr >= 75) cardColor = 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)'; // Green
-            else cardColor = 'linear-gradient(135deg, #808080 0%, #696969 100%)'; // Gray
+            if (card.ovr >= 92) cardColor = 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)'; // Amethyst
+            else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
+            else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
+            else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
+            else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
+            else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+            else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
             
             cardDiv.style.background = cardColor;
             
@@ -1781,28 +1815,34 @@
                 }
             });
 
-            // Team chemistry
+            // Team chemistry - STACKING across multiple teams
             const teamCounts = {};
             lockedCards.forEach(({ card }) => {
                 teamCounts[card.primary] = (teamCounts[card.primary] || 0) + 1;
             });
-            const maxTeamCount = Math.max(...Object.values(teamCounts), 0);
-            if (maxTeamCount === 2) total += 2;
-            else if (maxTeamCount === 3) total += 4;
-            else if (maxTeamCount === 4) total += 8;
-            else if (maxTeamCount === 5) total += 16;
+            
+            // Add bonus for each team group
+            Object.values(teamCounts).forEach(count => {
+                if (count === 2) total += 2;
+                else if (count === 3) total += 4;
+                else if (count === 4) total += 8;
+                else if (count >= 5) total += 16;
+            });
 
-            // Era bonus
+            // Era bonus - STACKING across multiple eras
             const eraCounts = {};
             lockedCards.forEach(({ card }) => {
                 card.era.split(', ').forEach(era => {
                     eraCounts[era] = (eraCounts[era] || 0) + 1;
                 });
             });
-            const maxEraCount = Math.max(...Object.values(eraCounts), 0);
-            if (maxEraCount === 3) total += 2;
-            else if (maxEraCount === 4) total += 4;
-            else if (maxEraCount >= 5) total += 8;
+            
+            // Add bonus for each era group
+            Object.values(eraCounts).forEach(count => {
+                if (count === 3) total += 2;
+                else if (count === 4) total += 4;
+                else if (count >= 5) total += 8;
+            });
 
             return total;
         }
@@ -2011,12 +2051,13 @@
                 
                 // Color based on OVR rating
                 let cardColor = '';
-                if (card.ovr >= 95) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)';
-                else if (card.ovr >= 90) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)';
-                else if (card.ovr >= 85) cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)';
-                else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #4169E1 0%, #1E90FF 100%)';
-                else if (card.ovr >= 75) cardColor = 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)';
-                else cardColor = 'linear-gradient(135deg, #808080 0%, #696969 100%)';
+                if (card.ovr >= 92) cardColor = 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)'; // Amethyst
+                else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
+                else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
+                else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
+                else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
+                else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                 
                 cardDiv.style.background = cardColor;
                 
@@ -2035,11 +2076,47 @@
         function endGame() {
             gameState.phase = 'final';
             
-            // Fill empty positions with 70 OVR cards
+            // Fill empty positions with best available cards from hand
             gameState.players.forEach(player => {
                 POSITIONS.forEach(pos => {
                     if (!player.lineup[pos]) {
-                        player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                        // Find all cards in hand that can fill this position
+                        const eligibleCards = player.hand.filter(card => 
+                            canPlaceCardAtPosition(card, pos)
+                        );
+                        
+                        if (eligibleCards.length > 0) {
+                            // Calculate the best card considering OVR, penalties, and bonuses
+                            let bestCard = null;
+                            let bestScore = -Infinity;
+                            
+                            eligibleCards.forEach(card => {
+                                // Temporarily place card to calculate bonuses
+                                player.lineup[pos] = card;
+                                const teamOVR = calculateTeamOVR(player);
+                                player.lineup[pos] = null; // Remove temp placement
+                                
+                                // Score includes: card OVR - position penalty + team bonuses
+                                const penalty = calculatePositionPenalty(card, pos);
+                                const score = teamOVR; // This already includes everything
+                                
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestCard = card;
+                                }
+                            });
+                            
+                            if (bestCard) {
+                                player.lineup[pos] = bestCard;
+                                player.hand = player.hand.filter(c => c !== bestCard);
+                            } else {
+                                // No eligible cards, use benchwarmer
+                                player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                            }
+                        } else {
+                            // No eligible cards, use benchwarmer
+                            player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                        }
                     }
                 });
             });
@@ -2054,6 +2131,9 @@
             scores.sort((a, b) => b.ovr - a.ovr);
             
             const winner = scores[0];
+            
+            // Add winner class to winning player's area
+            gameState.winnerPlayerId = winner.playerId;
 
             // Show winner in instruction area
             showMessage(`🏆 ${winner.player} WINS with ${winner.ovr} Team OVR! 🏆`);
