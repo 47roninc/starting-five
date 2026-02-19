@@ -873,26 +873,30 @@
                         else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
                         else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
                         else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
-                        else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-                        else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                        else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold
+                        else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver
+                        else if (card.ovr === 70) cardColor = 'linear-gradient(135deg, #696969 0%, #4B4B4B 100%)'; // Benchwarmer
                         else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                         
                         const penalty = !card.positions.includes(pos) ? calculatePositionPenalty(card, pos) : 0;
                         
                         html += `
-                            <div style="background: ${cardColor}; padding: 8px; border-radius: 8px; text-align: center; border: 2px solid rgba(255,255,255,0.3);">
-                                <div style="font-size: 0.7em; font-weight: bold;">${pos}</div>
-                                <div style="font-size: 0.75em; font-weight: bold; margin-top: 3px;">${card.name}</div>
-                                <div style="font-size: 1em; font-weight: bold; margin: 3px 0;">${card.ovr}</div>
-                                ${penalty > 0 ? `<div style="font-size: 0.7em; color: #ff6b6b;">-${penalty} OVR</div>` : ''}
-                                ${card === player.captain ? '<div style="font-size: 0.7em; color: #ffd700;">⭐ CAPTAIN</div>' : ''}
+                            <div style="background: ${cardColor}; padding: 10px; border-radius: 8px; text-align: center; border: 2px solid rgba(255,255,255,0.3);">
+                                <div style="font-size: 0.7em; font-weight: bold; color: #ffd700;">${pos} SLOT</div>
+                                <div style="font-size: 0.8em; font-weight: bold; margin-top: 5px;">${card.name}</div>
+                                <div style="font-size: 1.2em; font-weight: bold; margin: 5px 0;">${card.ovr} OVR</div>
+                                <div style="font-size: 0.7em;">${card.positions.join('/')}</div>
+                                <div style="font-size: 0.65em; margin-top: 3px;">${card.primary} | Era ${card.era}</div>
+                                <div style="font-size: 0.65em; color: rgba(255,255,255,0.7);">Rank #${card.rank}</div>
+                                ${penalty > 0 ? `<div style="font-size: 0.75em; color: #ff6b6b; margin-top: 3px; font-weight: bold;">-${penalty} OVR PENALTY</div>` : ''}
+                                ${card === player.captain ? '<div style="font-size: 0.75em; color: #ffd700; margin-top: 3px;">⭐ CAPTAIN</div>' : ''}
                             </div>
                         `;
                     } else {
                         html += `
-                            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px; text-align: center; border: 2px dashed rgba(255,255,255,0.2);">
-                                <div style="font-size: 0.7em; font-weight: bold;">${pos}</div>
-                                <div style="font-size: 0.75em; margin-top: 10px; color: #888;">Empty</div>
+                            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: center; border: 2px dashed rgba(255,255,255,0.2);">
+                                <div style="font-size: 0.7em; font-weight: bold; color: #ffd700;">${pos} SLOT</div>
+                                <div style="font-size: 0.75em; margin-top: 15px; color: #888;">Empty</div>
                             </div>
                         `;
                     }
@@ -933,16 +937,16 @@
                     <p><strong>2. Lock In a Card (Optional)</strong></p>
                     <ul>
                         <li>Place a card from your hand into a position slot</li>
-                        <li>You give your BEST card to the player counterclockwise</li>
+                        <li>You give your BEST card to the player <strong>counterclockwise</strong> (to your right)</li>
                         <li>You draw a card</li>
                         <li>They burn a card</li>
-                        <li>Their turn begins</li>
+                        <li>The player <strong>clockwise</strong> from you (to your left) takes their turn next</li>
                     </ul>
                     
                     <p><strong>3. End Turn</strong></p>
                     <ul>
                         <li>If you didn't lock in a card, click "End Turn"</li>
-                        <li>Next player's turn begins</li>
+                        <li>Next player <strong>clockwise</strong> (to your left) takes their turn</li>
                     </ul>
                     
                     <h3 style="color: #90EE90; margin-top: 20px;">📊 Position Rules</h3>
@@ -963,26 +967,28 @@
                         <li>LeBron out of SF: <strong>-4 OVR</strong> (instead of -6)</li>
                     </ul>
                     
-                    <h3 style="color: #90EE90; margin-top: 20px;">🏆 Bonuses</h3>
+                    <h3 style="color: #90EE90; margin-top: 20px;">🏆 Bonuses (STACKING!)</h3>
                     <p><strong>GOAT Bonus:</strong> LeBron/Jordan get +4 OVR if you have no other 90+ OVR cards</p>
                     
-                    <p><strong>Team Chemistry:</strong></p>
+                    <p><strong>Team Chemistry (bonuses stack!):</strong></p>
                     <ul>
                         <li>2 same team cards: <strong>+2 OVR</strong></li>
                         <li>3 same team cards: <strong>+4 OVR</strong></li>
                         <li>4 same team cards: <strong>+8 OVR</strong></li>
                         <li>5 same team cards: <strong>+16 OVR</strong></li>
+                        <li>Example: 2 Lakers + 2 Celtics = +2 + +2 = <strong>+4 OVR total</strong></li>
                     </ul>
                     
-                    <p><strong>Era Synergy:</strong></p>
+                    <p><strong>Era Synergy (bonuses stack!):</strong></p>
                     <ul>
                         <li>3 cards with same era: <strong>+2 OVR</strong></li>
                         <li>4 cards with same era: <strong>+4 OVR</strong></li>
                         <li>5 cards with same era: <strong>+8 OVR</strong></li>
+                        <li>Example: 3 Era 4 cards + 3 Era 5 cards = +2 + +2 = <strong>+4 OVR total</strong></li>
                     </ul>
                     
                     <h3 style="color: #90EE90; margin-top: 20px;">🎯 Winning</h3>
-                    <p>First player to complete their starting lineup (5 cards) triggers the end of the game. The player with the HIGHEST Team OVR wins!</p>
+                    <p>First player to complete their starting lineup (5 cards) triggers the end of the game. Empty positions are automatically filled with the best available cards from your hand (or benchwarmers if none fit). The player with the HIGHEST Team OVR wins!</p>
                     
                     <p style="margin-top: 20px; padding: 10px; background: rgba(255,215,0,0.2); border-radius: 5px;">
                         <strong>💡 Pro Tip:</strong> Cards in your hand show potential bonuses (🏆 for team, 📅 for era) to help you make strategic decisions!
@@ -1018,8 +1024,8 @@
                     else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
                     else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
                     else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
-                    else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-                    else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                    else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold
+                    else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver
                     else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                     
                     html += `
@@ -1113,8 +1119,8 @@
             const container = document.getElementById('playersContainer');
             container.innerHTML = '';
 
-            if (gameState.viewMode === 'separate' && gameState.currentView !== null) {
-                // Show only the current player's full view
+            if (gameState.viewMode === 'separate' && gameState.currentView !== null && gameState.phase !== 'final') {
+                // Show only the current player's full view (except at end of game)
                 const player = gameState.players[gameState.currentView];
                 renderPlayerView(player, true, container);
                 
@@ -1125,7 +1131,7 @@
                     }
                 });
             } else {
-                // Shared mode - show everything
+                // Shared mode or final phase - show everything
                 gameState.players.forEach((player, index) => {
                     renderPlayerView(player, true, container);
                 });
@@ -1165,28 +1171,32 @@
             let goatBonus = 0;
             
             if (lockedCards.length > 0) {
-                // Team chemistry bonus
+                // Team chemistry bonus - STACKING
                 const teamCounts = {};
                 lockedCards.forEach(card => {
                     teamCounts[card.primary] = (teamCounts[card.primary] || 0) + 1;
                 });
-                const maxTeamCount = Math.max(...Object.values(teamCounts), 0);
-                if (maxTeamCount === 2) teamBonus = 2;
-                else if (maxTeamCount === 3) teamBonus = 4;
-                else if (maxTeamCount === 4) teamBonus = 8;
-                else if (maxTeamCount >= 5) teamBonus = 16;
+                // Sum bonuses from all team groups
+                Object.values(teamCounts).forEach(count => {
+                    if (count === 2) teamBonus += 2;
+                    else if (count === 3) teamBonus += 4;
+                    else if (count === 4) teamBonus += 8;
+                    else if (count >= 5) teamBonus += 16;
+                });
                 
-                // Era bonus
+                // Era bonus - STACKING
                 const eraCounts = {};
                 lockedCards.forEach(card => {
                     card.era.split(', ').forEach(era => {
                         eraCounts[era] = (eraCounts[era] || 0) + 1;
                     });
                 });
-                const maxEraCount = Math.max(...Object.values(eraCounts), 0);
-                if (maxEraCount === 3) eraBonus = 2;
-                else if (maxEraCount === 4) eraBonus = 4;
-                else if (maxEraCount >= 5) eraBonus = 8;
+                // Sum bonuses from all era groups
+                Object.values(eraCounts).forEach(count => {
+                    if (count === 3) eraBonus += 2;
+                    else if (count === 4) eraBonus += 4;
+                    else if (count >= 5) eraBonus += 8;
+                });
                 
                 // GOAT bonus
                 lockedCards.forEach(({ card }) => {
@@ -1327,6 +1337,7 @@
                 // Place captain in chosen position
                 if (!player.lineup[position]) {
                     player.lineup[position] = player.captain;
+                    player.captainHidden = true; // Mark as placed to remove highlights
                     updateDisplay();
                     
                     // Check if all captains are placed
@@ -1477,8 +1488,9 @@
                 else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
                 else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
                 else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
-                else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-                else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold (darker)
+                else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver (darker)
+                else if (card.ovr === 70) cardColor = 'linear-gradient(135deg, #696969 0%, #4B4B4B 100%)'; // Benchwarmer (dark gray)
                 else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                 
                 cardDiv.style.background = cardColor;
@@ -1590,8 +1602,8 @@
             else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
             else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
             else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
-            else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-            else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+            else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold
+            else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver
             else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
             
             cardDiv.style.background = cardColor;
@@ -2055,8 +2067,8 @@
                 else if (card.ovr >= 87) cardColor = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)'; // Ruby
                 else if (card.ovr >= 83) cardColor = 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)'; // Emerald
                 else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
-                else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'; // Gold
-                else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)'; // Silver
+                else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold
+                else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver
                 else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
                 
                 cardDiv.style.background = cardColor;
@@ -2153,7 +2165,7 @@
                 <div style="margin: 20px 0;">
                     <h4>Final Standings:</h4>
                     ${scores.map((s, i) => `
-                        <div style="padding: 15px; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: 1.1em;">
+                        <div style="padding: 15px; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: 1.1em;">
                             <strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR
                         </div>
                     `).join('')}
