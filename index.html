@@ -312,6 +312,9 @@
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .player-count-btn:hover:not(:disabled) {
@@ -498,11 +501,19 @@
                     <p style="margin: 25px 0; font-size: 1.3em;">Enter your name:</p>
                     <input type="text" id="playerName" placeholder="Your Name" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555;">
                     <br>
-                    <button onclick="createRoom()" style="margin: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Create Room</button>
-                    <p style="margin: 25px 0; font-size: 1.3em;">OR</p>
-                    <input type="text" id="roomCode" placeholder="Enter Room Code" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555; text-transform: uppercase;">
-                    <br>
-                    <button onclick="joinRoom()" style="margin: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #2196F3; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Join Room</button>
+                    
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin-top: 30px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px; max-width: 300px;">
+                            <button onclick="createRoom()" style="width: 100%; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Create Room</button>
+                        </div>
+                        
+                        <div style="font-size: 1.8em; font-weight: bold; color: #888;">OR</div>
+                        
+                        <div style="flex: 1; min-width: 200px; max-width: 300px;">
+                            <input type="text" id="roomCode" placeholder="Room Code" style="width: 100%; padding: 15px; font-size: 1.2em; border-radius: 8px; margin-bottom: 10px; border: 2px solid #555; text-transform: uppercase; box-sizing: border-box;">
+                            <button onclick="joinRoom()" style="width: 100%; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #2196F3; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Join Room</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="roomLobby" style="display: none;">
@@ -589,7 +600,8 @@
             roomCode: null,
             playerId: null,
             playerName: null,
-            isHost: false
+            isHost: false,
+            processingSync: false // Prevent duplicate processing
         };
 
         function createRoom() {
@@ -865,103 +877,142 @@
         }
         
         function syncGameStateFromFirebase(syncedState) {
-            // Update deck
-            if (syncedState.deck) {
-                gameState.deck = syncedState.deck.slice(syncedState.deckIndex || 0).map(rank => 
-                    CARDS.find(c => c.rank === rank)
-                );
-            }
+            // Prevent processing if already syncing
+            if (onlineGame.processingSync) return;
+            onlineGame.processingSync = true;
             
-            // Update hands
-            if (syncedState.hands) {
-                Object.entries(syncedState.hands).forEach(([playerIndex, handRanks]) => {
-                    const player = gameState.players[parseInt(playerIndex)];
-                    if (player) {
-                        player.hand = handRanks.map(rank => CARDS.find(c => c.rank === rank));
-                    }
-                });
-            }
-            
-            // Update captains
-            if (syncedState.captains) {
-                Object.entries(syncedState.captains).forEach(([playerIndex, captainData]) => {
-                    const player = gameState.players[parseInt(playerIndex)];
-                    if (player && captainData) {
-                        const captain = CARDS.find(c => c.rank === captainData.rank);
-                        if (captain) {
-                            player.captain = captain;
-                            if (captainData.position && !player.lineup[captainData.position]) {
-                                player.lineup[captainData.position] = captain;
-                                player.captainHidden = true;
-                                // Remove from hand
-                                player.hand = player.hand.filter(c => c.rank !== captain.rank);
-                            }
+            try {
+                // Update deck
+                if (syncedState.deck) {
+                    gameState.deck = syncedState.deck.slice(syncedState.deckIndex || 0).map(rank => 
+                        CARDS.find(c => c.rank === rank)
+                    );
+                }
+                
+                // Update hands
+                if (syncedState.hands) {
+                    Object.entries(syncedState.hands).forEach(([playerIndex, handRanks]) => {
+                        const player = gameState.players[parseInt(playerIndex)];
+                        if (player) {
+                            player.hand = handRanks.map(rank => CARDS.find(c => c.rank === rank));
                         }
-                    }
-                });
-            }
-            
-            // Update lineups
-            if (syncedState.lineups) {
-                Object.entries(syncedState.lineups).forEach(([playerIndex, lineup]) => {
-                    const player = gameState.players[parseInt(playerIndex)];
-                    if (player && lineup) {
-                        Object.entries(lineup).forEach(([pos, cardRank]) => {
-                            if (cardRank) {
-                                const card = CARDS.find(c => c.rank === cardRank);
-                                if (card && !player.lineup[pos]) {
-                                    player.lineup[pos] = card;
-                                    // Remove from hand if present
-                                    player.hand = player.hand.filter(c => c.rank !== cardRank);
+                    });
+                }
+                
+                // Update captains
+                if (syncedState.captains) {
+                    Object.entries(syncedState.captains).forEach(([playerIndex, captainData]) => {
+                        const player = gameState.players[parseInt(playerIndex)];
+                        if (player && captainData) {
+                            const captain = CARDS.find(c => c.rank === captainData.rank);
+                            if (captain) {
+                                player.captain = captain;
+                                if (captainData.position && !player.lineup[captainData.position]) {
+                                    player.lineup[captainData.position] = captain;
+                                    player.captainHidden = true;
+                                    // Remove from hand
+                                    player.hand = player.hand.filter(c => c.rank !== captain.rank);
                                 }
                             }
-                        });
-                    }
-                });
-            }
-            
-            // Update burn pile
-            if (syncedState.burnPile) {
-                gameState.burnPile = syncedState.burnPile.map(rank => CARDS.find(c => c.rank === rank));
-            }
-            
-            // Update game phase
-            if (syncedState.phase) {
-                gameState.phase = syncedState.phase;
-            }
-            
-            // Update current player
-            if (syncedState.currentPlayerIndex !== undefined) {
-                gameState.currentPlayerIndex = syncedState.currentPlayerIndex;
-            }
-            
-            // Update other state
-            gameState.hasAsked = syncedState.hasAsked || false;
-            gameState.waitingForBurn = syncedState.waitingForBurn !== undefined ? syncedState.waitingForBurn : null;
-            
-            // Update playerNeedingAction based on waitingForBurn
-            if (gameState.waitingForBurn !== null) {
-                gameState.playerNeedingAction = gameState.waitingForBurn;
-            } else {
-                gameState.playerNeedingAction = null;
-            }
-            
-            // Check if all captains are placed and reveal if needed
-            if (gameState.phase === 'captainSelection') {
-                const allCaptainsPlaced = gameState.players.every(p => 
-                    p.captain && Object.values(p.lineup).some(card => card === p.captain)
-                );
-                if (allCaptainsPlaced) {
-                    revealCaptains();
+                        }
+                    });
                 }
+                
+                // Update lineups
+                if (syncedState.lineups) {
+                    Object.entries(syncedState.lineups).forEach(([playerIndex, lineup]) => {
+                        const player = gameState.players[parseInt(playerIndex)];
+                        if (player && lineup) {
+                            Object.entries(lineup).forEach(([pos, cardRank]) => {
+                                if (cardRank) {
+                                    const card = CARDS.find(c => c.rank === cardRank);
+                                    if (card && !player.lineup[pos]) {
+                                        player.lineup[pos] = card;
+                                        // Remove from hand if present
+                                        player.hand = player.hand.filter(c => c.rank !== cardRank);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                // Update burn pile
+                if (syncedState.burnPile) {
+                    gameState.burnPile = syncedState.burnPile.map(rank => CARDS.find(c => c.rank === rank));
+                }
+                
+                // Update game phase
+                if (syncedState.phase) {
+                    gameState.phase = syncedState.phase;
+                }
+                
+                // Update current player
+                if (syncedState.currentPlayerIndex !== undefined) {
+                    gameState.currentPlayerIndex = syncedState.currentPlayerIndex;
+                }
+                
+                // Update other state
+                gameState.hasAsked = syncedState.hasAsked || false;
+                
+                // CRITICAL: Update waitingForBurn from Firebase
+                const prevWaitingForBurn = gameState.waitingForBurn;
+                gameState.waitingForBurn = syncedState.waitingForBurn !== undefined ? syncedState.waitingForBurn : null;
+                
+                // Update playerNeedingAction based on waitingForBurn
+                if (gameState.waitingForBurn !== null) {
+                    gameState.playerNeedingAction = gameState.waitingForBurn;
+                } else {
+                    gameState.playerNeedingAction = null;
+                }
+                
+                // Show appropriate message based on game state
+                if (gameState.phase === 'playing') {
+                    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+                    
+                    if (gameState.waitingForBurn !== null) {
+                        const burningPlayer = gameState.players[gameState.waitingForBurn];
+                        // Only show message if this is a NEW burn state
+                        if (prevWaitingForBurn !== gameState.waitingForBurn) {
+                            if (gameState.waitingForBurn === onlineGame.gamePlayerId) {
+                                showMessage(`You must burn a card!`);
+                            } else {
+                                showMessage(`${burningPlayer.name} must burn a card.`);
+                            }
+                        }
+                    } else if (!gameState.hasAsked) {
+                        // It's someone's turn to act
+                        if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
+                            showMessage(`It's your turn! Click "Ask for Position" or lock in a card.`);
+                        } else {
+                            showMessage(`It's ${currentPlayer.name}'s turn.`);
+                        }
+                    }
+                }
+                
+                // Check if all captains are placed and reveal if needed
+                if (gameState.phase === 'captainSelection') {
+                    const allCaptainsPlaced = gameState.players.every(p => 
+                        p.captain && Object.values(p.lineup).some(card => card === p.captain)
+                    );
+                    if (allCaptainsPlaced) {
+                        revealCaptains();
+                    }
+                }
+                
+                updateDisplay();
+                updateBurnPile();
+            } finally {
+                onlineGame.processingSync = false;
             }
-            
-            updateDisplay();
-            updateBurnPile();
         }
         
         function syncToFirebase(updates) {
             if (!database || !onlineGame.roomCode || !onlineGame.enabled) return;
+            
+            // Add action ID to track who made the change
+            updates.lastActionId = onlineGame.playerId;
+            updates.lastActionTime = Date.now();
             
             const gameRef = database.ref(`rooms/${onlineGame.roomCode}/gameState`);
             gameRef.update(updates);
@@ -1969,7 +2020,9 @@
                         }
                         
                         // Never reveal which card was given - only reveal the locked card
-                        showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
+                        if (!onlineGame.enabled) {
+                            showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
+                        }
                         gameState.waitingForBurn = nextPlayerIndex;
                         gameState.playerNeedingAction = nextPlayerIndex;
                         
@@ -2177,7 +2230,9 @@
                 // Current player burned after asking - they can now lock in or end turn
                 updateBurnPile();
                 updateDisplay();
-                showMessage(`${player.name} burned ${card.name}. You can now lock in a card or end your turn.`);
+                if (!onlineGame.enabled) {
+                    showMessage(`${player.name} burned ${card.name}. You can now lock in a card or end your turn.`);
+                }
             } else {
                 // Another player burned after receiving a card from lock-in
                 // Turn goes CLOCKWISE from the player who locked in (not the burner)
@@ -2190,7 +2245,9 @@
                 gameState.newlyAcquiredCard = null; // Clear after burning player has seen it
                 updateBurnPile();
                 updateDisplay();
-                showMessage(`${player.name} burned ${card.name}. It's now ${gameState.players[nextIndex].name}'s turn!`);
+                if (!onlineGame.enabled) {
+                    showMessage(`${player.name} burned ${card.name}. It's now ${gameState.players[nextIndex].name}'s turn!`);
+                }
                 
                 // Check if new current player is AI
                 if (gameState.players[nextIndex].isAI) {
@@ -2642,7 +2699,9 @@
                 gameState.newlyAcquiredCard = cardToGive;
                 
                 // Never reveal which card was given - keep it secret
-                showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
+                if (!onlineGame.enabled) {
+                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
+                }
                 
                 // Target player draws a card
                 let drawnCard = null;
@@ -2676,14 +2735,15 @@
                 // If current player is AI, auto-burn (aiBurnCard has built-in delay)
                 if (currentPlayer.isAI) {
                     aiBurnCard(currentPlayer);
-                } else {
+                } else if (!onlineGame.enabled) {
                     showMessage(`${currentPlayer.name}, select a card from your hand and click "Burn Card"`);
                 }
                 updateDisplay();
             } else {
                 // No matching cards - no burn needed
-                showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
-                
+                if (!onlineGame.enabled) {
+                    showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
+                }
                 // Target player still draws a card
                 let drawnCard = null;
                 if (gameState.deck.length > 0) {
@@ -2730,7 +2790,9 @@
             updateDisplay();
             
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-            showMessage(`${prevPlayer.name} ended their turn. It's now ${currentPlayer.name}'s turn!`);
+            if (!onlineGame.enabled) {
+                showMessage(`${prevPlayer.name} ended their turn. It's now ${currentPlayer.name}'s turn!`);
+            }
             
             // Check if next player is AI
             if (currentPlayer.isAI && gameState.phase === 'playing') {
