@@ -445,25 +445,25 @@
         <h1>🏀 STARTING FIVE 🏀</h1>
 
         <div id="setupScreen" class="setup-area">
-            <p style="font-size: 1.2em; margin-bottom: 40px;">The Ultimate NBA Card Draft Game</p>
+            <p style="font-size: 1.5em; margin-bottom: 50px; font-weight: bold;">The Ultimate NBA Card Draft Game</p>
             
             <!-- Step 1: Mode Selection -->
             <div id="modeSelection">
-                <h3 style="margin-bottom: 30px;">Choose Game Mode</h3>
-                <button onclick="selectMode('local')" style="width: 280px; height: 70px; font-size: 1.3em; margin: 15px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold;">
+                <h2 style="margin-bottom: 40px; font-size: 2em;">Choose Game Mode</h2>
+                <button onclick="selectMode('local')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                     🏠 Same Device
                 </button>
                 <br>
-                <button onclick="selectMode('online')" style="width: 280px; height: 70px; font-size: 1.3em; margin: 15px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold;">
+                <button onclick="selectMode('online')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                     🌐 Online
                 </button>
             </div>
             
             <!-- Step 2: Player Selection -->
             <div id="playerSelection" style="display: none;">
-                <h3 style="margin-bottom: 30px;">Select Players</h3>
-                <div style="margin-bottom: 30px;">
-                    <p style="font-size: 1.1em; margin-bottom: 10px;"><strong>Human Players:</strong></p>
+                <h2 style="margin-bottom: 40px; font-size: 2em;">Select Players</h2>
+                <div style="margin-bottom: 40px;">
+                    <p style="font-size: 1.3em; margin-bottom: 15px;"><strong>Human Players:</strong></p>
                     <div id="humanPlayerButtons">
                         <button class="player-count-btn" onclick="setHumanPlayers(1)">1</button>
                         <button class="player-count-btn selected" onclick="setHumanPlayers(2)">2</button>
@@ -473,8 +473,8 @@
                         <button class="player-count-btn" onclick="setHumanPlayers(6)">6</button>
                     </div>
                 </div>
-                <div style="margin-bottom: 30px;">
-                    <p style="font-size: 1.1em; margin-bottom: 10px;"><strong>AI Opponents:</strong></p>
+                <div style="margin-bottom: 40px;">
+                    <p style="font-size: 1.3em; margin-bottom: 15px;"><strong>AI Opponents:</strong></p>
                     <div id="aiPlayerButtons">
                         <button class="player-count-btn selected" onclick="setAIPlayers(0)">0</button>
                         <button class="player-count-btn" onclick="setAIPlayers(1)">1</button>
@@ -484,37 +484,37 @@
                         <button class="player-count-btn" onclick="setAIPlayers(5)">5</button>
                     </div>
                 </div>
-                <p style="font-size: 0.9em; color: #888; margin-bottom: 20px;">Maximum 6 total players (Human + AI)</p>
-                <div style="margin-top: 30px;">
-                    <button onclick="backToModeSelection()" style="margin-right: 10px; padding: 12px 25px; font-size: 1.1em;">← Back</button>
-                    <button onclick="confirmPlayerSelection()" id="confirmPlayersBtn" style="padding: 12px 25px; font-size: 1.1em; background: #4CAF50; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">Start Game →</button>
+                <p style="font-size: 1.1em; color: #aaa; margin-bottom: 30px;">Maximum 6 total players (Human + AI)</p>
+                <div style="margin-top: 40px;">
+                    <button onclick="backToModeSelection()" style="margin-right: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px;">← Back</button>
+                    <button onclick="confirmPlayerSelection()" id="confirmPlayersBtn" style="padding: 15px 35px; font-size: 1.3em; background: #4CAF50; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Start Game →</button>
                 </div>
             </div>
             
             <!-- Step 3: Online Room (online mode only) -->
             <div id="onlineRoom" style="display: none;">
-                <h3 style="margin-bottom: 30px;">Online Multiplayer</h3>
+                <h2 style="margin-bottom: 40px; font-size: 2em;">Online Multiplayer</h2>
                 <div id="roomCreation">
-                    <p style="margin: 20px 0;">Enter your name:</p>
-                    <input type="text" id="playerName" placeholder="Your Name" style="padding: 10px; font-size: 1em; border-radius: 5px; margin: 10px;">
+                    <p style="margin: 25px 0; font-size: 1.3em;">Enter your name:</p>
+                    <input type="text" id="playerName" placeholder="Your Name" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555;">
                     <br>
-                    <button onclick="createRoom()" style="margin: 10px; padding: 12px 25px; font-size: 1.1em;">Create Room</button>
-                    <p style="margin: 20px 0;">OR</p>
-                    <input type="text" id="roomCode" placeholder="Enter Room Code" style="padding: 10px; font-size: 1em; border-radius: 5px; margin: 10px;">
+                    <button onclick="createRoom()" style="margin: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Create Room</button>
+                    <p style="margin: 25px 0; font-size: 1.3em;">OR</p>
+                    <input type="text" id="roomCode" placeholder="Enter Room Code" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555; text-transform: uppercase;">
                     <br>
-                    <button onclick="joinRoom()" style="margin: 10px; padding: 12px 25px; font-size: 1.1em;">Join Room</button>
+                    <button onclick="joinRoom()" style="margin: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #2196F3; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Join Room</button>
                 </div>
                 
                 <div id="roomLobby" style="display: none;">
-                    <h3>Room Code: <span id="displayRoomCode" style="color: #ffd700;"></span></h3>
-                    <p style="margin: 10px 0;">Share this code with other players!</p>
-                    <h4>Players in Lobby:</h4>
-                    <div id="lobbyPlayers" style="margin: 20px 0;"></div>
-                    <button id="startOnlineGame" onclick="startOnlineGame()" style="display: none; margin: 10px; padding: 12px 25px; font-size: 1.1em;">Start Game</button>
-                    <button onclick="leaveRoom()" style="margin: 10px; padding: 12px 25px; font-size: 1.1em;">Leave Room</button>
+                    <h2 style="font-size: 1.8em;">Room Code: <span id="displayRoomCode" style="color: #ffd700; font-size: 2em;"></span></h2>
+                    <p style="margin: 15px 0; font-size: 1.2em;">Share this code with other players!</p>
+                    <h3 style="margin-top: 30px; font-size: 1.5em;">Players in Lobby:</h3>
+                    <div id="lobbyPlayers" style="margin: 25px 0; font-size: 1.2em;"></div>
+                    <button id="startOnlineGame" onclick="startOnlineGame()" style="display: none; margin: 15px; padding: 15px 40px; font-size: 1.3em; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Start Game</button>
+                    <button onclick="leaveRoom()" style="margin: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px; background: #f44336; color: white; font-weight: bold; border: none; cursor: pointer;">Leave Room</button>
                 </div>
-                <div style="margin-top: 30px;">
-                    <button onclick="backToModeSelection()" style="padding: 12px 25px; font-size: 1.1em;">← Back</button>
+                <div style="margin-top: 40px;">
+                    <button onclick="backToModeSelection()" style="padding: 15px 35px; font-size: 1.3em; border-radius: 8px;">← Back</button>
                 </div>
             </div>
         </div>
@@ -637,7 +637,21 @@
                 
                 Object.entries(players).forEach(([id, player]) => {
                     const playerDiv = document.createElement('div');
-                    playerDiv.textContent = player.name + (id === onlineGame.playerId ? ' (You)' : '');
+                    playerDiv.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = player.name + (id === onlineGame.playerId ? ' (You)' : '');
+                    playerDiv.appendChild(nameSpan);
+                    
+                    // Show kick button if host and not yourself
+                    if (onlineGame.isHost && id !== onlineGame.playerId) {
+                        const kickBtn = document.createElement('button');
+                        kickBtn.textContent = '❌ Kick';
+                        kickBtn.style.cssText = 'padding: 5px 15px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;';
+                        kickBtn.onclick = () => kickPlayer(id);
+                        playerDiv.appendChild(kickBtn);
+                    }
+                    
                     lobbyDiv.appendChild(playerDiv);
                 });
                 
@@ -646,6 +660,13 @@
                     document.getElementById('startOnlineGame').style.display = 'inline-block';
                 }
             });
+        }
+        
+        function kickPlayer(playerId) {
+            if (!onlineGame.isHost || !database || !onlineGame.roomCode) return;
+            
+            // Remove player from room
+            database.ref(`rooms/${onlineGame.roomCode}/players/${playerId}`).remove();
         }
 
         function joinRoom() {
@@ -694,11 +715,20 @@
                 // Listen for players
                 database.ref(`rooms/${roomCode}/players`).on('value', (snapshot) => {
                     const players = snapshot.val();
+                    
+                    // Check if you've been kicked
+                    if (players && !players[onlineGame.playerId]) {
+                        alert('You have been removed from the room by the host.');
+                        leaveRoom();
+                        return;
+                    }
+                    
                     const lobbyDiv = document.getElementById('lobbyPlayers');
                     lobbyDiv.innerHTML = '';
                     
                     Object.entries(players).forEach(([id, player]) => {
                         const playerDiv = document.createElement('div');
+                        playerDiv.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
                         playerDiv.textContent = player.name + (id === onlineGame.playerId ? ' (You)' : '');
                         lobbyDiv.appendChild(playerDiv);
                     });
@@ -757,6 +787,9 @@
                     onlineGame.gamePlayerId = myIndex;
                     
                     startGame();
+                    
+                    // Set up game state sync
+                    setupOnlineSync();
                 });
             } else {
                 // Fallback for local testing
@@ -764,6 +797,193 @@
                 gameState.menuState.aiPlayers = 0;
                 startGame();
             }
+        }
+        
+        function setupOnlineSync() {
+            if (!database || !onlineGame.roomCode) return;
+            
+            const gameRef = database.ref(`rooms/${onlineGame.roomCode}/gameState`);
+            
+            // If host, initialize the game state
+            if (onlineGame.isHost) {
+                // Shuffle deck and store it
+                const shuffledDeck = [...CARDS];
+                shuffleArray(shuffledDeck);
+                
+                // Store deck as ranks (smaller data)
+                const deckRanks = shuffledDeck.map(c => c.rank);
+                
+                gameRef.set({
+                    deck: deckRanks,
+                    phase: 'captainSelection',
+                    currentPlayerIndex: 0,
+                    captains: {},
+                    hands: {},
+                    lineups: {},
+                    burnPile: [],
+                    hasAsked: false,
+                    waitingForBurn: null,
+                    selectedPosition: null,
+                    targetPlayer: null,
+                    lastAction: null
+                });
+                
+                // Deal cards to players
+                const numPlayers = gameState.players.length;
+                const hands = {};
+                for (let i = 0; i < numPlayers; i++) {
+                    hands[i] = [];
+                }
+                
+                // Deal 8 cards to each player
+                let deckIndex = 0;
+                for (let cardNum = 0; cardNum < 8; cardNum++) {
+                    for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
+                        hands[playerIndex].push(deckRanks[deckIndex]);
+                        deckIndex++;
+                    }
+                }
+                
+                gameRef.child('hands').set(hands);
+                gameRef.child('deckIndex').set(deckIndex);
+            }
+            
+            // Listen for all game state changes
+            gameRef.on('value', (snapshot) => {
+                const syncedState = snapshot.val();
+                if (!syncedState) return;
+                
+                syncGameStateFromFirebase(syncedState);
+            });
+        }
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        
+        function syncGameStateFromFirebase(syncedState) {
+            // Update deck
+            if (syncedState.deck) {
+                gameState.deck = syncedState.deck.slice(syncedState.deckIndex || 0).map(rank => 
+                    CARDS.find(c => c.rank === rank)
+                );
+            }
+            
+            // Update hands
+            if (syncedState.hands) {
+                Object.entries(syncedState.hands).forEach(([playerIndex, handRanks]) => {
+                    const player = gameState.players[parseInt(playerIndex)];
+                    if (player) {
+                        player.hand = handRanks.map(rank => CARDS.find(c => c.rank === rank));
+                    }
+                });
+            }
+            
+            // Update captains
+            if (syncedState.captains) {
+                Object.entries(syncedState.captains).forEach(([playerIndex, captainData]) => {
+                    const player = gameState.players[parseInt(playerIndex)];
+                    if (player && captainData) {
+                        const captain = CARDS.find(c => c.rank === captainData.rank);
+                        if (captain) {
+                            player.captain = captain;
+                            if (captainData.position && !player.lineup[captainData.position]) {
+                                player.lineup[captainData.position] = captain;
+                                player.captainHidden = true;
+                                // Remove from hand
+                                player.hand = player.hand.filter(c => c.rank !== captain.rank);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Update lineups
+            if (syncedState.lineups) {
+                Object.entries(syncedState.lineups).forEach(([playerIndex, lineup]) => {
+                    const player = gameState.players[parseInt(playerIndex)];
+                    if (player && lineup) {
+                        Object.entries(lineup).forEach(([pos, cardRank]) => {
+                            if (cardRank) {
+                                const card = CARDS.find(c => c.rank === cardRank);
+                                if (card && !player.lineup[pos]) {
+                                    player.lineup[pos] = card;
+                                    // Remove from hand if present
+                                    player.hand = player.hand.filter(c => c.rank !== cardRank);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Update burn pile
+            if (syncedState.burnPile) {
+                gameState.burnPile = syncedState.burnPile.map(rank => CARDS.find(c => c.rank === rank));
+            }
+            
+            // Update game phase
+            if (syncedState.phase) {
+                gameState.phase = syncedState.phase;
+            }
+            
+            // Update current player
+            if (syncedState.currentPlayerIndex !== undefined) {
+                gameState.currentPlayerIndex = syncedState.currentPlayerIndex;
+            }
+            
+            // Update other state
+            gameState.hasAsked = syncedState.hasAsked || false;
+            gameState.waitingForBurn = syncedState.waitingForBurn !== undefined ? syncedState.waitingForBurn : null;
+            
+            // Update playerNeedingAction based on waitingForBurn
+            if (gameState.waitingForBurn !== null) {
+                gameState.playerNeedingAction = gameState.waitingForBurn;
+            } else {
+                gameState.playerNeedingAction = null;
+            }
+            
+            // Check if all captains are placed and reveal if needed
+            if (gameState.phase === 'captainSelection') {
+                const allCaptainsPlaced = gameState.players.every(p => 
+                    p.captain && Object.values(p.lineup).some(card => card === p.captain)
+                );
+                if (allCaptainsPlaced) {
+                    revealCaptains();
+                }
+            }
+            
+            updateDisplay();
+            updateBurnPile();
+        }
+        
+        function syncToFirebase(updates) {
+            if (!database || !onlineGame.roomCode || !onlineGame.enabled) return;
+            
+            const gameRef = database.ref(`rooms/${onlineGame.roomCode}/gameState`);
+            gameRef.update(updates);
+        }
+        
+        function syncCaptainToFirebase(playerIndex, captain, position) {
+            if (!database || !onlineGame.roomCode || !onlineGame.enabled) return;
+            
+            const updates = {};
+            updates[`captains/${playerIndex}`] = {
+                rank: captain.rank,
+                position: position
+            };
+            
+            // Remove from hand
+            database.ref(`rooms/${onlineGame.roomCode}/gameState/hands/${playerIndex}`).once('value').then((snapshot) => {
+                const hand = snapshot.val() || [];
+                const newHand = hand.filter(r => r !== captain.rank);
+                updates[`hands/${playerIndex}`] = newHand;
+                
+                syncToFirebase(updates);
+            });
         }
 
         // Card database
@@ -1666,11 +1886,17 @@
                 if (!player.lineup[position]) {
                     player.lineup[position] = player.captain;
                     player.captainHidden = true; // Mark as placed to remove highlights
+                    
+                    // Sync to Firebase in online mode
+                    if (onlineGame.enabled) {
+                        syncCaptainToFirebase(playerId, player.captain, position);
+                    }
+                    
                     updateDisplay();
                     
                     // Check if all captains are placed
                     const allPlaced = gameState.players.every(p => 
-                        Object.values(p.lineup).some(card => card === p.captain)
+                        p.captain && Object.values(p.lineup).some(card => card === p.captain)
                     );
                     
                     if (allPlaced) {
@@ -1708,6 +1934,7 @@
                     gameState.selectedCardPlayer = undefined;
 
                     // Give highest rank card (best card, lowest rank number) to player counterclockwise
+                    let drawnCard = null;
                     if (player.hand.length > 0) {
                         const highestCard = player.hand.reduce((max, card) => 
                             card.rank < max.rank ? card : max
@@ -1724,15 +1951,25 @@
                         
                         // Current player draws before ending turn
                         if (gameState.deck.length > 0) {
-                            player.hand.push(gameState.deck.pop());
+                            drawnCard = gameState.deck.pop();
+                            player.hand.push(drawnCard);
                         }
                         
-                        // Hide card details if receiver is AI
-                        if (nextPlayer.isAI) {
-                            showMessage(`${player.name} locked in a card! ${nextPlayer.name} received a card and must burn one.`);
-                        } else {
-                            showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
+                        // Sync to Firebase
+                        if (onlineGame.enabled) {
+                            const updates = {};
+                            updates[`lineups/${playerId}/${position}`] = card.rank;
+                            updates[`hands/${playerId}`] = player.hand.map(c => c.rank);
+                            updates[`hands/${nextPlayerIndex}`] = nextPlayer.hand.map(c => c.rank);
+                            if (drawnCard) {
+                                updates.deckIndex = CARDS.length - gameState.deck.length;
+                            }
+                            updates.waitingForBurn = nextPlayerIndex;
+                            syncToFirebase(updates);
                         }
+                        
+                        // Never reveal which card was given - only reveal the locked card
+                        showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
                         gameState.waitingForBurn = nextPlayerIndex;
                         gameState.playerNeedingAction = nextPlayerIndex;
                         
@@ -1743,7 +1980,19 @@
                     } else {
                         // No cards to give, just draw
                         if (gameState.deck.length > 0) {
-                            player.hand.push(gameState.deck.pop());
+                            drawnCard = gameState.deck.pop();
+                            player.hand.push(drawnCard);
+                        }
+                        
+                        // Sync to Firebase
+                        if (onlineGame.enabled) {
+                            const updates = {};
+                            updates[`lineups/${playerId}/${position}`] = card.rank;
+                            updates[`hands/${playerId}`] = player.hand.map(c => c.rank);
+                            if (drawnCard) {
+                                updates.deckIndex = CARDS.length - gameState.deck.length;
+                            }
+                            syncToFirebase(updates);
                         }
                     }
 
@@ -1903,6 +2152,25 @@
             gameState.selectedCard = null;
             gameState.selectedCardPlayer = undefined;
             gameState.playerNeedingAction = null;
+            
+            // Sync to Firebase
+            if (onlineGame.enabled) {
+                const updates = {};
+                updates[`hands/${playerId}`] = player.hand.map(c => c.rank);
+                updates.burnPile = gameState.burnPile.slice(0, 10).map(c => c.rank);
+                updates.waitingForBurn = null;
+                
+                // Check who was burning
+                if (playerId !== gameState.currentPlayerIndex) {
+                    // Turn changes
+                    const lockerIndex = (playerId + 1) % gameState.players.length;
+                    const nextIndex = (lockerIndex + 1) % gameState.players.length;
+                    updates.currentPlayerIndex = nextIndex;
+                    updates.hasAsked = false;
+                }
+                
+                syncToFirebase(updates);
+            }
             
             // Check who was burning
             if (playerId === gameState.currentPlayerIndex) {
@@ -2066,6 +2334,14 @@
 
                 gameState.currentPlayerIndex = firstPlayerIndex;
                 gameState.phase = 'playing';
+                
+                // Sync phase change to Firebase (only host does this)
+                if (onlineGame.enabled && onlineGame.isHost) {
+                    syncToFirebase({
+                        phase: 'playing',
+                        currentPlayerIndex: firstPlayerIndex
+                    });
+                }
                 
                 updateDisplay();
                 showMessage(`${gameState.players[firstPlayerIndex].name} has the lowest rank captain (#${highestRank}) and goes first!`);
@@ -2365,26 +2641,27 @@
                 // Track the newly acquired card
                 gameState.newlyAcquiredCard = cardToGive;
                 
-                // Hide card details if both players are AI
-                if (targetPlayer.isAI && currentPlayer.isAI) {
-                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
-                } else {
-                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} ${cardToGive.name} (${cardToGive.ovr} OVR)!`);
-                }
+                // Never reveal which card was given - keep it secret
+                showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
                 
                 // Target player draws a card
+                let drawnCard = null;
                 if (gameState.deck.length > 0) {
-                    targetPlayer.hand.push(gameState.deck.pop());
-                    // Trigger draw animation on next render
-                    setTimeout(() => {
-                        const handDiv = document.getElementById(`hand-${targetPlayer.id}`);
-                        if (handDiv) {
-                            const cards = handDiv.querySelectorAll('.hand-card');
-                            if (cards.length > 0) {
-                                cards[cards.length - 1].classList.add('card-draw-animation');
-                            }
-                        }
-                    }, 100);
+                    drawnCard = gameState.deck.pop();
+                    targetPlayer.hand.push(drawnCard);
+                }
+
+                // Sync to Firebase
+                if (onlineGame.enabled) {
+                    const updates = {};
+                    updates[`hands/${gameState.currentPlayerIndex}`] = currentPlayer.hand.map(c => c.rank);
+                    updates[`hands/${gameState.targetPlayer}`] = targetPlayer.hand.map(c => c.rank);
+                    if (drawnCard) {
+                        updates.deckIndex = CARDS.length - gameState.deck.length;
+                    }
+                    updates.hasAsked = true;
+                    updates.waitingForBurn = gameState.currentPlayerIndex;
+                    syncToFirebase(updates);
                 }
 
                 closeModal();
@@ -2408,8 +2685,21 @@
                 showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
                 
                 // Target player still draws a card
+                let drawnCard = null;
                 if (gameState.deck.length > 0) {
-                    targetPlayer.hand.push(gameState.deck.pop());
+                    drawnCard = gameState.deck.pop();
+                    targetPlayer.hand.push(drawnCard);
+                }
+                
+                // Sync to Firebase
+                if (onlineGame.enabled) {
+                    const updates = {};
+                    updates[`hands/${gameState.targetPlayer}`] = targetPlayer.hand.map(c => c.rank);
+                    if (drawnCard) {
+                        updates.deckIndex = CARDS.length - gameState.deck.length;
+                    }
+                    updates.hasAsked = true;
+                    syncToFirebase(updates);
                 }
                 
                 closeModal();
@@ -2428,6 +2718,15 @@
             gameState.selectedCard = null;
             gameState.hasAsked = false; // Reset for next turn
             // Don't clear newlyAcquiredCard here - it persists until the receiving player burns
+            
+            // Sync to Firebase
+            if (onlineGame.enabled) {
+                syncToFirebase({
+                    currentPlayerIndex: gameState.currentPlayerIndex,
+                    hasAsked: false
+                });
+            }
+            
             updateDisplay();
             
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
