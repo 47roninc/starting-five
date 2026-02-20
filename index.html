@@ -445,7 +445,6 @@
         <h1>🏀 STARTING FIVE 🏀</h1>
 
         <div id="setupScreen" class="setup-area">
-            <h2>🏀 Starting Five 🏀</h2>
             <p style="font-size: 1.2em; margin-bottom: 40px;">The Ultimate NBA Card Draft Game</p>
             
             <!-- Step 1: Mode Selection -->
@@ -515,7 +514,7 @@
                     <button onclick="leaveRoom()" style="margin: 10px; padding: 12px 25px; font-size: 1.1em;">Leave Room</button>
                 </div>
                 <div style="margin-top: 30px;">
-                    <button onclick="backToPlayerSelection()" style="padding: 12px 25px; font-size: 1.1em;">← Back</button>
+                    <button onclick="backToModeSelection()" style="padding: 12px 25px; font-size: 1.1em;">← Back</button>
                 </div>
             </div>
         </div>
@@ -735,10 +734,36 @@
                 database.ref(`rooms/${onlineGame.roomCode}/gameStarted`).set(true);
             }
             
-            // Start the game
-            gameState.menuState.humanPlayers = 2; // Will be determined by room
-            gameState.menuState.aiPlayers = 0;
-            startGame();
+            // Get player list from Firebase to determine player order
+            if (database && onlineGame.roomCode) {
+                database.ref(`rooms/${onlineGame.roomCode}/players`).once('value').then((snapshot) => {
+                    const players = snapshot.val();
+                    const playerIds = Object.keys(players);
+                    
+                    // Find this player's index in the room
+                    const myIndex = playerIds.indexOf(onlineGame.playerId);
+                    
+                    // Set up game with correct player count
+                    gameState.menuState.humanPlayers = playerIds.length;
+                    gameState.menuState.aiPlayers = 0;
+                    
+                    // Store the mapping of game IDs to Firebase IDs
+                    onlineGame.playerMapping = {};
+                    playerIds.forEach((id, index) => {
+                        onlineGame.playerMapping[index] = id;
+                    });
+                    
+                    // Store this player's game ID
+                    onlineGame.gamePlayerId = myIndex;
+                    
+                    startGame();
+                });
+            } else {
+                // Fallback for local testing
+                gameState.menuState.humanPlayers = 2;
+                gameState.menuState.aiPlayers = 0;
+                startGame();
+            }
         }
 
         // Card database
@@ -1361,8 +1386,14 @@
 
             gameState.phase = 'captainSelection';
             
-            // Start with first human player's view
-            gameState.currentView = 0;
+            // Set view based on mode
+            if (onlineGame.enabled && onlineGame.gamePlayerId !== undefined) {
+                // In online mode, set currentView to this player's game ID
+                gameState.currentView = onlineGame.gamePlayerId;
+            } else {
+                // Start with first human player's view
+                gameState.currentView = 0;
+            }
             
             document.getElementById('setupScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
@@ -1392,7 +1423,7 @@
             const container = document.getElementById('playersContainer');
             container.innerHTML = '';
 
-            if (gameState.viewMode === 'separate' && gameState.currentView !== null && gameState.phase !== 'final') {
+            if ((gameState.viewMode === 'separate' || gameState.viewMode === 'online') && gameState.currentView !== null && gameState.phase !== 'final') {
                 // Show only the current player's full view (except at end of game)
                 const player = gameState.players[gameState.currentView];
                 renderPlayerView(player, true, container);
@@ -1422,10 +1453,10 @@
             if (gameState.phase === 'final' && gameState.winnerPlayerId === player.id) {
                 playerDiv.className += ' winner';
             }
-            // Highlight the player who needs to take action
-            else if (gameState.playerNeedingAction === player.id) {
+            // Highlight the player who needs to take action (NOT during final phase)
+            else if (gameState.phase !== 'final' && gameState.playerNeedingAction === player.id) {
                 playerDiv.className += ' active';
-            } else if (player.id === gameState.currentPlayerIndex && gameState.phase === 'playing' && gameState.playerNeedingAction === null) {
+            } else if (gameState.phase !== 'final' && player.id === gameState.currentPlayerIndex && gameState.phase === 'playing' && gameState.playerNeedingAction === null) {
                 playerDiv.className += ' active';
             }
 
@@ -1483,21 +1514,21 @@
             }
             
             // In online mode, only show your own hand
-            if (onlineGame.enabled) {
-                showHand = (player.id === onlineGame.playerId);
+            if (onlineGame.enabled && onlineGame.gamePlayerId !== undefined) {
+                showHand = (player.id === onlineGame.gamePlayerId);
             }
             
             // Determine if this is the viewing player's own area
             const isOwnView = (gameState.viewMode === 'separate' && player.id === gameState.currentView) || 
                              (gameState.viewMode === 'shared') ||
-                             (gameState.viewMode === 'online' && player.id === onlineGame.playerId);
+                             (onlineGame.enabled && onlineGame.gamePlayerId !== undefined && player.id === onlineGame.gamePlayerId);
             
             // Hide Team OVR for other players during captain selection
             const showTeamOVR = gameState.phase !== 'captainSelection' || isOwnView;
             
             playerDiv.innerHTML = `
                 <div class="player-header">
-                    <div class="player-name">${player.name}${gameState.viewMode === 'separate' && player.id === gameState.currentView ? ' (YOU)' : ''}${onlineGame.enabled && player.id === onlineGame.playerId ? ' (YOU)' : ''}</div>
+                    <div class="player-name">${player.name}${gameState.viewMode === 'separate' && player.id === gameState.currentView ? ' (YOU)' : ''}${onlineGame.enabled && onlineGame.gamePlayerId !== undefined && player.id === onlineGame.gamePlayerId ? ' (YOU)' : ''}</div>
                     <div class="team-ovr">
                         ${showTeamOVR ? `${teamOVR} OVR` : '??? OVR'}
                         ${showTeamOVR && goatBonus > 0 ? `<span style="color: #ff69b4; font-size: 0.8em; margin-left: 5px;">🐐+${goatBonus}</span>` : ''}
@@ -1533,8 +1564,8 @@
                 const slot = document.createElement('div');
                 slot.className = 'position-slot';
                 
-                // Make slots clickable during captain selection or when locking in cards
-                const isCurrentPlayer = player.id === gameState.currentPlayerIndex || gameState.phase === 'captainSelection';
+                // Make slots clickable during captain selection or when locking in cards (NOT for AI players)
+                const isCurrentPlayer = !player.isAI && (player.id === gameState.currentPlayerIndex || gameState.phase === 'captainSelection');
                 const cardToPlace = gameState.phase === 'captainSelection' ? player.captain : 
                                    (isCurrentPlayer ? gameState.selectedCard : null);
                 
@@ -1574,7 +1605,7 @@
                     // During captain selection, hide OTHER players' captain cards until all are placed
                     const isOwnView = (gameState.viewMode === 'separate' && player.id === gameState.currentView) || 
                                      (gameState.viewMode === 'shared') ||
-                                     (gameState.viewMode === 'online' && player.id === onlineGame.playerId);
+                                     (onlineGame.enabled && onlineGame.gamePlayerId !== undefined && player.id === onlineGame.gamePlayerId);
                     
                     if (gameState.phase === 'captainSelection' && card === player.captain && !isOwnView) {
                         const hiddenDiv = document.createElement('div');
@@ -1696,7 +1727,12 @@
                             player.hand.push(gameState.deck.pop());
                         }
                         
-                        showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
+                        // Hide card details if receiver is AI
+                        if (nextPlayer.isAI) {
+                            showMessage(`${player.name} locked in a card! ${nextPlayer.name} received a card and must burn one.`);
+                        } else {
+                            showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
+                        }
                         gameState.waitingForBurn = nextPlayerIndex;
                         gameState.playerNeedingAction = nextPlayerIndex;
                         
@@ -2224,19 +2260,25 @@
                 
                 if (gameState.waitingForBurn !== null) {
                     const burningPlayer = gameState.players[gameState.waitingForBurn];
+                    // Disable buttons if burner is AI
+                    const isAI = burningPlayer.isAI;
                     controlsDiv.innerHTML = viewSwitcher + `
                         <h3>${burningPlayer.name} Must Burn a Card</h3>
-                        <p>Select a card from your hand, then click Burn Card</p>
-                        <button onclick="confirmBurn()" ${!gameState.selectedCard ? 'disabled' : ''} style="background: #ff0000; color: white;">Burn Card</button>
+                        ${isAI ? '<p>AI is thinking...</p>' : '<p>Select a card from your hand, then click Burn Card</p>'}
+                        <button onclick="confirmBurn()" ${!gameState.selectedCard || isAI ? 'disabled' : ''} style="background: #ff0000; color: white;">Burn Card</button>
                     `;
                 } else {
+                    // Disable buttons if current player is AI
+                    const isAI = currentPlayer.isAI;
                     controlsDiv.innerHTML = viewSwitcher + `
                         <h3>${currentPlayer.name}'s Turn</h3>
+                        ${isAI ? '<p style="margin-top: 15px;">AI is thinking...</p>' : ''}
                         <div style="margin-top: 15px;">
-                            <button onclick="askForPosition()" ${gameState.hasAsked ? 'disabled' : ''}>Ask for Position</button>
-                            <button onclick="endTurn()">End Turn</button>
+                            <button onclick="askForPosition()" ${gameState.hasAsked || isAI ? 'disabled' : ''}>Ask for Position</button>
+                            <button onclick="endTurn()" ${isAI ? 'disabled' : ''}>End Turn</button>
                         </div>
-                        ${gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Select a card from your hand, then click a position slot to lock it in</p>' : '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Click "Ask for Position" to request a card from an opponent</p>'}
+                        ${!isAI && gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Select a card from your hand, then click a position slot to lock it in</p>' : ''}
+                        ${!isAI && !gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Click "Ask for Position" to request a card from an opponent</p>' : ''}
                     `;
                 }
             }
@@ -2323,7 +2365,12 @@
                 // Track the newly acquired card
                 gameState.newlyAcquiredCard = cardToGive;
                 
-                showMessage(`${targetPlayer.name} gave ${currentPlayer.name} ${cardToGive.name} (${cardToGive.ovr} OVR)!`);
+                // Hide card details if both players are AI
+                if (targetPlayer.isAI && currentPlayer.isAI) {
+                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
+                } else {
+                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} ${cardToGive.name} (${cardToGive.ovr} OVR)!`);
+                }
                 
                 // Target player draws a card
                 if (gameState.deck.length > 0) {
