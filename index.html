@@ -2115,23 +2115,11 @@
                         if (nextPlayer.isAI) {
                             aiBurnCard(nextPlayer);
                         }
-                        }
                     } else {
                         // No cards to give, just draw
                         if (gameState.deck.length > 0) {
                             drawnCard = gameState.deck.pop();
                             player.hand.push(drawnCard);
-                        }
-                        
-                        // Sync to Firebase
-                        if (onlineGame.enabled) {
-                            const updates = {};
-                            updates[`lineups/${playerId}/${position}`] = card.rank;
-                            updates[`hands/${playerId}`] = player.hand.map(c => c.rank);
-                            if (drawnCard) {
-                                updates.deckIndex = CARDS.length - gameState.deck.length;
-                            }
-                            syncToFirebase(updates);
                         }
                     }
 
