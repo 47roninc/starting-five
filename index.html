@@ -603,7 +603,8 @@
             playerName: null,
             isHost: false,
             processingSync: false, // Prevent duplicate processing
-            lastMessage: null // Track last message shown
+            lastMessage: null, // Track last message shown
+            syncedState: null // Store latest Firebase state
         };
 
         function createRoom() {
@@ -707,6 +708,13 @@
                 const room = snapshot.val();
                 if (room.gameStarted) {
                     alert('Game already in progress!');
+                    return;
+                }
+                
+                // Check player count limit
+                const playerCount = room.players ? Object.keys(room.players).length : 0;
+                if (playerCount >= 6) {
+                    alert('Room is full! Maximum 6 players allowed.');
                     return;
                 }
                 
@@ -884,6 +892,9 @@
             // Prevent processing if already syncing
             if (onlineGame.processingSync) return;
             onlineGame.processingSync = true;
+            
+            // Store synced state for access by action functions
+            onlineGame.syncedState = syncedState;
             
             try {
                 // Update deck
@@ -2223,14 +2234,44 @@
         }
 
         function burnCard(playerId, card) {
-            // In online mode, only the burning player should execute the action
-            // Others will get the update from Firebase
-            if (onlineGame.enabled && playerId !== onlineGame.gamePlayerId) {
+            const player = gameState.players[playerId];
+            
+            if (onlineGame.enabled) {
+                // In online mode, ONLY the burning player modifies Firebase
+                // Do NOT modify local state - let Firebase sync handle it
+                if (playerId === onlineGame.gamePlayerId) {
+                    const currentSyncedState = onlineGame.syncedState;
+                    const playerHand = currentSyncedState.hands[playerId] || [];
+                    const burnPile = currentSyncedState.burnPile || [];
+                    
+                    // Remove card from hand, add to burn pile
+                    const newHand = playerHand.filter(rank => rank !== card.rank);
+                    const newBurnPile = [card.rank, ...burnPile].slice(0, 10);
+                    
+                    const updates = {};
+                    updates[`hands/${playerId}`] = newHand;
+                    updates.burnPile = newBurnPile;
+                    updates.waitingForBurn = null;
+                    
+                    // Check who was burning
+                    if (playerId !== gameState.currentPlayerIndex) {
+                        // Turn changes
+                        const lockerIndex = (playerId + 1) % gameState.players.length;
+                        const nextIndex = (lockerIndex + 1) % gameState.players.length;
+                        updates.currentPlayerIndex = nextIndex;
+                        updates.hasAsked = false;
+                    }
+                    
+                    syncToFirebase(updates);
+                }
+                
+                // Don't modify local state
+                gameState.selectedCard = null;
+                gameState.selectedCardPlayer = undefined;
                 return;
             }
             
-            const player = gameState.players[playerId];
-            // CRITICAL: Compare by rank, not object reference (Firebase creates new card objects)
+            // Local mode - modify state directly
             player.hand = player.hand.filter(c => c.rank !== card.rank);
             gameState.burnPile.unshift(card);
             if (gameState.burnPile.length > 10) {
@@ -2719,13 +2760,6 @@
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
             const pos = gameState.positionAsked;
 
-            // In online mode, only the current player should execute the action
-            // Others will get the update from Firebase
-            if (onlineGame.enabled && gameState.currentPlayerIndex !== onlineGame.gamePlayerId) {
-                closeModal();
-                return;
-            }
-
             // Find cards with that position
             const matchingCards = targetPlayer.hand.filter(card => card.positions.includes(pos));
             
@@ -2734,54 +2768,68 @@
                 matchingCards.sort((a, b) => a.rank - b.rank);
                 const cardToGive = matchingCards[0];
                 
-                // CRITICAL: Compare by rank, not object reference
-                targetPlayer.hand = targetPlayer.hand.filter(c => c.rank !== cardToGive.rank);
-                currentPlayer.hand.push(cardToGive);
-                
-                // Track the newly acquired card
-                gameState.newlyAcquiredCard = cardToGive;
-                
-                // Never reveal which card was given - keep it secret
-                if (!onlineGame.enabled) {
-                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
-                }
-                
-                // Target player draws a card
-                let drawnCard = null;
-                if (gameState.deck.length > 0) {
-                    drawnCard = gameState.deck.pop();
-                    targetPlayer.hand.push(drawnCard);
-                }
-
-                // Sync to Firebase
                 if (onlineGame.enabled) {
-                    const updates = {};
-                    updates[`hands/${gameState.currentPlayerIndex}`] = currentPlayer.hand.map(c => c.rank);
-                    updates[`hands/${gameState.targetPlayer}`] = targetPlayer.hand.map(c => c.rank);
-                    if (drawnCard) {
-                        updates.deckIndex = CARDS.length - gameState.deck.length;
+                    // In online mode, ONLY the current player modifies Firebase
+                    // Do NOT modify local state - let Firebase sync handle it
+                    if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
+                        // Calculate new hands from current Firebase state
+                        const currentSyncedState = onlineGame.syncedState;
+                        const targetHand = (currentSyncedState.hands[gameState.targetPlayer] || []);
+                        const currentHand = (currentSyncedState.hands[gameState.currentPlayerIndex] || []);
+                        
+                        // Remove card from target, add to current
+                        const newTargetHand = targetHand.filter(rank => rank !== cardToGive.rank);
+                        const newCurrentHand = [...currentHand, cardToGive.rank];
+                        
+                        // Draw card for target
+                        let newDeckIndex = currentSyncedState.deckIndex || 0;
+                        if (newDeckIndex < currentSyncedState.deck.length) {
+                            newTargetHand.push(currentSyncedState.deck[newDeckIndex]);
+                            newDeckIndex++;
+                        }
+                        
+                        const updates = {};
+                        updates[`hands/${gameState.currentPlayerIndex}`] = newCurrentHand;
+                        updates[`hands/${gameState.targetPlayer}`] = newTargetHand;
+                        updates.deckIndex = newDeckIndex;
+                        updates.hasAsked = true;
+                        updates.waitingForBurn = gameState.currentPlayerIndex;
+                        syncToFirebase(updates);
                     }
-                    updates.hasAsked = true;
-                    updates.waitingForBurn = gameState.currentPlayerIndex;
-                    syncToFirebase(updates);
-                }
+                    
+                    closeModal();
+                    gameState.targetPlayer = null;
+                    gameState.positionAsked = null;
+                    // Don't modify local state - Firebase will handle it
+                } else {
+                    // Local mode - modify state directly
+                    targetPlayer.hand = targetPlayer.hand.filter(c => c.rank !== cardToGive.rank);
+                    currentPlayer.hand.push(cardToGive);
+                    
+                    gameState.newlyAcquiredCard = cardToGive;
+                    showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
+                    
+                    let drawnCard = null;
+                    if (gameState.deck.length > 0) {
+                        drawnCard = gameState.deck.pop();
+                        targetPlayer.hand.push(drawnCard);
+                    }
 
-                closeModal();
-                gameState.targetPlayer = null;
-                gameState.positionAsked = null;
-                gameState.hasAsked = true;
-                
-                // Current player must now burn a card
-                gameState.waitingForBurn = gameState.currentPlayerIndex;
-                gameState.playerNeedingAction = gameState.currentPlayerIndex;
-                
-                // If current player is AI, auto-burn (aiBurnCard has built-in delay)
-                if (currentPlayer.isAI) {
-                    aiBurnCard(currentPlayer);
-                } else if (!onlineGame.enabled) {
-                    showMessage(`${currentPlayer.name}, select a card from your hand and click "Burn Card"`);
+                    closeModal();
+                    gameState.targetPlayer = null;
+                    gameState.positionAsked = null;
+                    gameState.hasAsked = true;
+                    
+                    gameState.waitingForBurn = gameState.currentPlayerIndex;
+                    gameState.playerNeedingAction = gameState.currentPlayerIndex;
+                    
+                    if (currentPlayer.isAI) {
+                        aiBurnCard(currentPlayer);
+                    } else {
+                        showMessage(`${currentPlayer.name}, select a card from your hand and click "Burn Card"`);
+                    }
+                    updateDisplay();
                 }
-                updateDisplay();
             } else {
                 // No matching cards - no burn needed
                 showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
