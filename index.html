@@ -2016,8 +2016,71 @@
                 // Lock in selected card to chosen position
                 if (!player.lineup[position]) {
                     const card = gameState.selectedCard;
+                    
+                    if (onlineGame.enabled) {
+                        // In online mode, ONLY the current player modifies Firebase
+                        // Do NOT modify local state - let Firebase sync handle it
+                        if (playerId === onlineGame.gamePlayerId) {
+                            const currentSyncedState = onlineGame.syncedState;
+                            const playerHand = currentSyncedState.hands[playerId] || [];
+                            const playerLineup = currentSyncedState.lineups[playerId] || {};
+                            
+                            // Remove locked card from hand
+                            const newPlayerHand = playerHand.filter(rank => rank !== card.rank);
+                            
+                            // Update lineup
+                            const newLineup = {...playerLineup};
+                            newLineup[position] = card.rank;
+                            
+                            const updates = {};
+                            updates[`lineups/${playerId}`] = newLineup;
+                            updates[`hands/${playerId}`] = newPlayerHand;
+                            
+                            // Give card to counterclockwise player if hand not empty
+                            if (newPlayerHand.length > 0) {
+                                const nextPlayerIndex = (playerId - 1 + gameState.players.length) % gameState.players.length;
+                                const nextPlayerHand = currentSyncedState.hands[nextPlayerIndex] || [];
+                                
+                                // Find highest card (lowest rank number)
+                                const highestCardRank = Math.min(...newPlayerHand);
+                                
+                                // Remove from current player, add to next player
+                                const finalPlayerHand = newPlayerHand.filter(rank => rank !== highestCardRank);
+                                const finalNextHand = [...nextPlayerHand, highestCardRank];
+                                
+                                // Current player draws
+                                let newDeckIndex = currentSyncedState.deckIndex || 0;
+                                if (newDeckIndex < currentSyncedState.deck.length) {
+                                    finalPlayerHand.push(currentSyncedState.deck[newDeckIndex]);
+                                    newDeckIndex++;
+                                }
+                                
+                                updates[`hands/${playerId}`] = finalPlayerHand;
+                                updates[`hands/${nextPlayerIndex}`] = finalNextHand;
+                                updates.deckIndex = newDeckIndex;
+                                updates.waitingForBurn = nextPlayerIndex;
+                            } else {
+                                // No cards to give, just draw
+                                let newDeckIndex = currentSyncedState.deckIndex || 0;
+                                if (newDeckIndex < currentSyncedState.deck.length) {
+                                    newPlayerHand.push(currentSyncedState.deck[newDeckIndex]);
+                                    newDeckIndex++;
+                                    updates[`hands/${playerId}`] = newPlayerHand;
+                                    updates.deckIndex = newDeckIndex;
+                                }
+                            }
+                            
+                            syncToFirebase(updates);
+                        }
+                        
+                        // Clear selection but don't modify state
+                        gameState.selectedCard = null;
+                        gameState.selectedCardPlayer = undefined;
+                        return;
+                    }
+                    
+                    // Local mode - modify state directly
                     player.lineup[position] = card;
-                    // CRITICAL: Compare by rank, not object reference
                     player.hand = player.hand.filter(c => c.rank !== card.rank);
                     gameState.selectedCard = null;
                     gameState.selectedCardPlayer = undefined;
@@ -2032,7 +2095,6 @@
                         const nextPlayerIndex = (gameState.currentPlayerIndex - 1 + gameState.players.length) % gameState.players.length;
                         const nextPlayer = gameState.players[nextPlayerIndex];
                         
-                        // CRITICAL: Compare by rank, not object reference
                         player.hand = player.hand.filter(c => c.rank !== highestCard.rank);
                         nextPlayer.hand.push(highestCard);
                         
@@ -2045,29 +2107,14 @@
                             player.hand.push(drawnCard);
                         }
                         
-                        // Sync to Firebase
-                        if (onlineGame.enabled) {
-                            const updates = {};
-                            updates[`lineups/${playerId}/${position}`] = card.rank;
-                            updates[`hands/${playerId}`] = player.hand.map(c => c.rank);
-                            updates[`hands/${nextPlayerIndex}`] = nextPlayer.hand.map(c => c.rank);
-                            if (drawnCard) {
-                                updates.deckIndex = CARDS.length - gameState.deck.length;
-                            }
-                            updates.waitingForBurn = nextPlayerIndex;
-                            syncToFirebase(updates);
-                        }
-                        
-                        // Never reveal which card was given - only reveal the locked card
-                        if (!onlineGame.enabled) {
-                            showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
-                        }
+                        showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
                         gameState.waitingForBurn = nextPlayerIndex;
                         gameState.playerNeedingAction = nextPlayerIndex;
                         
                         // If next player is AI, auto-burn (aiBurnCard has built-in delay)
                         if (nextPlayer.isAI) {
                             aiBurnCard(nextPlayer);
+                        }
                         }
                     } else {
                         // No cards to give, just draw
@@ -2834,31 +2881,45 @@
                 // No matching cards - no burn needed
                 showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
                 
-                // Target player still draws a card
-                let drawnCard = null;
-                if (gameState.deck.length > 0) {
-                    drawnCard = gameState.deck.pop();
-                    targetPlayer.hand.push(drawnCard);
-                }
-                
-                // Sync to Firebase
                 if (onlineGame.enabled) {
-                    const updates = {};
-                    updates[`hands/${gameState.targetPlayer}`] = targetPlayer.hand.map(c => c.rank);
-                    if (drawnCard) {
-                        updates.deckIndex = CARDS.length - gameState.deck.length;
+                    // In online mode, only modify Firebase
+                    if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
+                        const currentSyncedState = onlineGame.syncedState;
+                        const targetHand = currentSyncedState.hands[gameState.targetPlayer] || [];
+                        
+                        // Target player draws a card
+                        let newDeckIndex = currentSyncedState.deckIndex || 0;
+                        const newTargetHand = [...targetHand];
+                        if (newDeckIndex < currentSyncedState.deck.length) {
+                            newTargetHand.push(currentSyncedState.deck[newDeckIndex]);
+                            newDeckIndex++;
+                        }
+                        
+                        const updates = {};
+                        updates[`hands/${gameState.targetPlayer}`] = newTargetHand;
+                        updates.deckIndex = newDeckIndex;
+                        updates.hasAsked = true;
+                        syncToFirebase(updates);
                     }
-                    updates.hasAsked = true;
-                    syncToFirebase(updates);
+                    
+                    closeModal();
+                    gameState.targetPlayer = null;
+                    gameState.positionAsked = null;
+                } else {
+                    // Local mode - modify state directly
+                    let drawnCard = null;
+                    if (gameState.deck.length > 0) {
+                        drawnCard = gameState.deck.pop();
+                        targetPlayer.hand.push(drawnCard);
+                    }
+                    
+                    closeModal();
+                    gameState.targetPlayer = null;
+                    gameState.positionAsked = null;
+                    gameState.hasAsked = true;
+                    
+                    updateDisplay();
                 }
-                
-                closeModal();
-                gameState.targetPlayer = null;
-                gameState.positionAsked = null;
-                gameState.hasAsked = true;
-                
-                // No burn required - player can proceed
-                updateDisplay();
             }
         }
 
