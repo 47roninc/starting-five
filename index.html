@@ -602,7 +602,8 @@
             playerId: null,
             playerName: null,
             isHost: false,
-            processingSync: false // Prevent duplicate processing
+            processingSync: false, // Prevent duplicate processing
+            lastMessage: null // Track last message shown
         };
 
         function createRoom() {
@@ -969,22 +970,26 @@
                     gameState.playerNeedingAction = null;
                 }
                 
-                // Show appropriate message based on game state
+                // Show appropriate message based on game state (IDENTICAL ON ALL DEVICES)
                 if (gameState.phase === 'playing') {
                     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+                    let newMessage = null;
                     
                     if (gameState.waitingForBurn !== null) {
                         const burningPlayer = gameState.players[gameState.waitingForBurn];
-                        // Only show message if this is a NEW burn state
-                        if (prevWaitingForBurn !== gameState.waitingForBurn) {
-                            showMessage(`${burningPlayer.name} must burn a card.`);
-                        }
+                        newMessage = `${burningPlayer.name} must burn a card.`;
                     } else if (!gameState.hasAsked) {
-                        // It's someone's turn to act - show whose turn it is
-                        showMessage(`It's ${currentPlayer.name}'s turn.`);
+                        // It's someone's turn to act
+                        newMessage = `It's ${currentPlayer.name}'s turn.`;
                     } else {
                         // Player has asked, can now lock in
-                        showMessage(`${currentPlayer.name} can now lock in a card or end their turn.`);
+                        newMessage = `${currentPlayer.name} can now lock in a card or end their turn.`;
+                    }
+                    
+                    // Only show message if it's different from last message
+                    if (newMessage && newMessage !== onlineGame.lastMessage) {
+                        onlineGame.lastMessage = newMessage;
+                        showMessage(newMessage);
                     }
                 }
                 
@@ -1984,8 +1989,8 @@
                     return;
                 }
                 
-                // Check if card is already placed somewhere
-                const alreadyPlaced = Object.values(player.lineup).some(c => c === gameState.selectedCard);
+                // Check if card is already placed somewhere (compare by rank)
+                const alreadyPlaced = Object.values(player.lineup).some(c => c && c.rank === gameState.selectedCard.rank);
                 if (alreadyPlaced) {
                     showMessage("This card is already placed in your lineup!");
                     return;
@@ -2001,7 +2006,8 @@
                 if (!player.lineup[position]) {
                     const card = gameState.selectedCard;
                     player.lineup[position] = card;
-                    player.hand = player.hand.filter(c => c !== card);
+                    // CRITICAL: Compare by rank, not object reference
+                    player.hand = player.hand.filter(c => c.rank !== card.rank);
                     gameState.selectedCard = null;
                     gameState.selectedCardPlayer = undefined;
 
@@ -2015,7 +2021,8 @@
                         const nextPlayerIndex = (gameState.currentPlayerIndex - 1 + gameState.players.length) % gameState.players.length;
                         const nextPlayer = gameState.players[nextPlayerIndex];
                         
-                        player.hand = player.hand.filter(c => c !== highestCard);
+                        // CRITICAL: Compare by rank, not object reference
+                        player.hand = player.hand.filter(c => c.rank !== highestCard.rank);
                         nextPlayer.hand.push(highestCard);
                         
                         // Mark this card as newly acquired for the next player
@@ -2223,7 +2230,8 @@
             }
             
             const player = gameState.players[playerId];
-            player.hand = player.hand.filter(c => c !== card);
+            // CRITICAL: Compare by rank, not object reference (Firebase creates new card objects)
+            player.hand = player.hand.filter(c => c.rank !== card.rank);
             gameState.burnPile.unshift(card);
             if (gameState.burnPile.length > 10) {
                 gameState.burnPile = gameState.burnPile.slice(0, 10);
@@ -2726,7 +2734,8 @@
                 matchingCards.sort((a, b) => a.rank - b.rank);
                 const cardToGive = matchingCards[0];
                 
-                targetPlayer.hand = targetPlayer.hand.filter(c => c !== cardToGive);
+                // CRITICAL: Compare by rank, not object reference
+                targetPlayer.hand = targetPlayer.hand.filter(c => c.rank !== cardToGive.rank);
                 currentPlayer.hand.push(cardToGive);
                 
                 // Track the newly acquired card
