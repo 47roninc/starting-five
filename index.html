@@ -312,9 +312,10 @@
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 60px;
+            text-align: center;
         }
         
         .player-count-btn:hover:not(:disabled) {
@@ -497,7 +498,7 @@
             <!-- Step 3: Online Room (online mode only) -->
             <div id="onlineRoom" style="display: none;">
                 <h2 style="margin-bottom: 40px; font-size: 2em;">Online Multiplayer</h2>
-                <div id="roomCreation">
+                <div id="roomCreation" style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); max-width: 800px; margin: 0 auto;">
                     <p style="margin: 25px 0; font-size: 1.3em;">Enter your name:</p>
                     <input type="text" id="playerName" placeholder="Your Name" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555;">
                     <br>
@@ -516,7 +517,7 @@
                     </div>
                 </div>
                 
-                <div id="roomLobby" style="display: none;">
+                <div id="roomLobby" style="display: none; background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); max-width: 600px; margin: 30px auto 0 auto;">
                     <h2 style="font-size: 1.8em;">Room Code: <span id="displayRoomCode" style="color: #ffd700; font-size: 2em;"></span></h2>
                     <p style="margin: 15px 0; font-size: 1.2em;">Share this code with other players!</p>
                     <h3 style="margin-top: 30px; font-size: 1.5em;">Players in Lobby:</h3>
@@ -789,10 +790,12 @@
                     gameState.menuState.humanPlayers = playerIds.length;
                     gameState.menuState.aiPlayers = 0;
                     
-                    // Store the mapping of game IDs to Firebase IDs
+                    // Store the mapping of game IDs to Firebase IDs and player names
                     onlineGame.playerMapping = {};
+                    onlineGame.playerNames = {};
                     playerIds.forEach((id, index) => {
                         onlineGame.playerMapping[index] = id;
+                        onlineGame.playerNames[index] = players[id].name;
                     });
                     
                     // Store this player's game ID
@@ -974,19 +977,14 @@
                         const burningPlayer = gameState.players[gameState.waitingForBurn];
                         // Only show message if this is a NEW burn state
                         if (prevWaitingForBurn !== gameState.waitingForBurn) {
-                            if (gameState.waitingForBurn === onlineGame.gamePlayerId) {
-                                showMessage(`You must burn a card!`);
-                            } else {
-                                showMessage(`${burningPlayer.name} must burn a card.`);
-                            }
+                            showMessage(`${burningPlayer.name} must burn a card.`);
                         }
                     } else if (!gameState.hasAsked) {
-                        // It's someone's turn to act
-                        if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
-                            showMessage(`It's your turn! Click "Ask for Position" or lock in a card.`);
-                        } else {
-                            showMessage(`It's ${currentPlayer.name}'s turn.`);
-                        }
+                        // It's someone's turn to act - show whose turn it is
+                        showMessage(`It's ${currentPlayer.name}'s turn.`);
+                    } else {
+                        // Player has asked, can now lock in
+                        showMessage(`${currentPlayer.name} can now lock in a card or end their turn.`);
                     }
                 }
                 
@@ -1633,9 +1631,20 @@
             gameState.players = [];
             for (let i = 0; i < totalPlayers; i++) {
                 const isAI = i >= humanCount;
+                let playerName;
+                
+                if (onlineGame.enabled && onlineGame.playerNames && onlineGame.playerNames[i]) {
+                    // Use actual player names in online mode
+                    playerName = onlineGame.playerNames[i];
+                } else if (isAI) {
+                    playerName = `🤖 AI Player ${i - humanCount + 1}`;
+                } else {
+                    playerName = `Player ${i + 1}`;
+                }
+                
                 gameState.players.push({
                     id: i,
-                    name: isAI ? `🤖 AI Player ${i - humanCount + 1}` : `Player ${i + 1}`,
+                    name: playerName,
                     hand: [],
                     lineup: { PG: null, SG: null, SF: null, PF: null, C: null },
                     captain: null,
@@ -1644,15 +1653,21 @@
                 });
             }
 
-            // Create and shuffle deck
-            gameState.deck = [...CARDS];
-            shuffleDeck();
+            // Create and shuffle deck (only for local/same device mode)
+            if (!onlineGame.enabled) {
+                gameState.deck = [...CARDS];
+                shuffleDeck();
 
-            // Deal 8 cards to each player
-            for (let i = 0; i < 8; i++) {
-                for (let player of gameState.players) {
-                    player.hand.push(gameState.deck.pop());
+                // Deal 8 cards to each player
+                for (let i = 0; i < 8; i++) {
+                    for (let player of gameState.players) {
+                        player.hand.push(gameState.deck.pop());
+                    }
                 }
+            } else {
+                // In online mode, deck and hands are managed by Firebase
+                gameState.deck = [];
+                gameState.players.forEach(p => p.hand = []);
             }
 
             gameState.phase = 'captainSelection';
@@ -2741,9 +2756,8 @@
                 updateDisplay();
             } else {
                 // No matching cards - no burn needed
-                if (!onlineGame.enabled) {
-                    showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
-                }
+                showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
+                
                 // Target player still draws a card
                 let drawnCard = null;
                 if (gameState.deck.length > 0) {
@@ -2840,6 +2854,14 @@
 
         function endGame() {
             gameState.phase = 'final';
+            
+            // Sync phase change to Firebase
+            if (onlineGame.enabled) {
+                syncToFirebase({
+                    phase: 'final',
+                    waitingForBurn: null
+                });
+            }
             
             // Fill empty positions with best available cards from hand
             gameState.players.forEach(player => {
