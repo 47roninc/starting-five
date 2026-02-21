@@ -312,10 +312,10 @@
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             vertical-align: middle;
-            line-height: 60px;
-            text-align: center;
         }
         
         .player-count-btn:hover:not(:disabled) {
@@ -1978,6 +1978,12 @@
                     }
                 }
             } else if (gameState.phase === 'playing' && playerId === gameState.currentPlayerIndex && gameState.selectedCard) {
+                // In online mode, only the current player should execute the action
+                // Others will get the update from Firebase
+                if (onlineGame.enabled && playerId !== onlineGame.gamePlayerId) {
+                    return;
+                }
+                
                 // Check if card is already placed somewhere
                 const alreadyPlaced = Object.values(player.lineup).some(c => c === gameState.selectedCard);
                 if (alreadyPlaced) {
@@ -2210,6 +2216,12 @@
         }
 
         function burnCard(playerId, card) {
+            // In online mode, only the burning player should execute the action
+            // Others will get the update from Firebase
+            if (onlineGame.enabled && playerId !== onlineGame.gamePlayerId) {
+                return;
+            }
+            
             const player = gameState.players[playerId];
             player.hand = player.hand.filter(c => c !== card);
             gameState.burnPile.unshift(card);
@@ -2698,6 +2710,13 @@
             const targetPlayer = gameState.players[gameState.targetPlayer];
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
             const pos = gameState.positionAsked;
+
+            // In online mode, only the current player should execute the action
+            // Others will get the update from Firebase
+            if (onlineGame.enabled && gameState.currentPlayerIndex !== onlineGame.gamePlayerId) {
+                closeModal();
+                return;
+            }
 
             // Find cards with that position
             const matchingCards = targetPlayer.hand.filter(card => card.positions.includes(pos));
