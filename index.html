@@ -19,6 +19,12 @@
         body {
             font-family: 'Arial Black', Arial, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background-image: 
+                linear-gradient(135deg, #1a1a2e 0%, #16213e 100%),
+                radial-gradient(circle, rgba(255,140,0,0.04) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255,140,0,0.04) 1px, transparent 1px);
+            background-size: 100% 100%, 60px 60px, 120px 120px;
+            background-position: 0 0, 0 0, 30px 30px;
             color: white;
             padding: 20px;
             min-height: 100vh;
@@ -242,6 +248,30 @@
             transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(255,215,0,0.4);
         }
+        
+        /* Green button hover */
+        button[style*="4CAF50"]:hover,
+        button[style*="#4CAF50"]:hover {
+            box-shadow: 0 5px 15px rgba(76,175,80,0.6) !important;
+        }
+        
+        /* Blue button hover */
+        button[style*="2196F3"]:hover,
+        button[style*="#2196F3"]:hover {
+            box-shadow: 0 5px 15px rgba(33,150,243,0.6) !important;
+        }
+        
+        /* Red button hover */
+        button[style*="f44336"]:hover,
+        button[style*="#f44336"]:hover {
+            box-shadow: 0 5px 15px rgba(244,67,54,0.6) !important;
+        }
+        
+        /* Instructions/lineup/index button hover (green) */
+        button[style*="32CD32"]:hover,
+        button[style*="#32CD32"]:hover {
+            box-shadow: 0 5px 15px rgba(50,205,50,0.6) !important;
+        }
 
         button:disabled {
             opacity: 0.5;
@@ -442,56 +472,148 @@
         .card-receive-animation {
             animation: cardReceive 0.6s ease-out;
         }
+        
+        /* Responsive Design - Scale based on screen size */
+        @media (max-width: 1400px) {
+            .game-container {
+                max-width: 100%;
+            }
+            h1 {
+                font-size: 2.5em;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            body {
+                padding: 15px;
+                font-size: 14px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .hand-card {
+                min-width: 100px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            body {
+                padding: 10px;
+                font-size: 13px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .player-area {
+                padding: 10px;
+            }
+            .hand-card {
+                min-width: 90px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 5px;
+                font-size: 12px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            .player-area {
+                padding: 8px;
+            }
+            .hand-card {
+                min-width: 80px;
+                font-size: 0.9em;
+            }
+            .lineup {
+                gap: 5px;
+            }
+            button {
+                padding: 8px 16px;
+                font-size: 0.85em;
+            }
+            .player-count-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3em;
+            }
+        }
+        
+        @media (min-width: 1600px) {
+            body {
+                font-size: 18px;
+            }
+            h1 {
+                font-size: 4em;
+            }
+            .hand-card {
+                min-width: 140px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <h1>🏀 STARTING FIVE 🏀</h1>
+        <div style="background: linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,140,0,0.15) 100%); padding: 25px; border-radius: 20px; border: 3px solid rgba(255,215,0,0.4); margin-bottom: 30px; box-shadow: 0 8px 20px rgba(255,215,0,0.3);">
+            <h1 style="margin: 0;">🏀 STARTING FIVE 🏀</h1>
+        </div>
 
         <div id="setupScreen" class="setup-area">
-            <p style="font-size: 1.5em; margin-bottom: 50px; font-weight: bold;">The Ultimate NBA Card Draft Game</p>
+            <div style="background: linear-gradient(135deg, rgba(76,175,80,0.1) 0%, rgba(33,150,243,0.1) 100%); padding: 20px 30px; border-radius: 15px; border: 2px solid rgba(76,175,80,0.3); margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto;">
+                <p style="font-size: 1.5em; margin: 0; font-weight: bold; background: linear-gradient(90deg, #4CAF50, #2196F3, #4CAF50); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">The Ultimate NBA Card Draft Game</p>
+            </div>
             
             <!-- Step 1: Mode Selection -->
             <div id="modeSelection">
-                <h2 style="margin-bottom: 40px; font-size: 2em;">Choose Game Mode</h2>
-                <button onclick="selectMode('local')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    🏠 Same Device
-                </button>
-                <br>
-                <button onclick="selectMode('online')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    🌐 Online
-                </button>
+                <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); max-width: 600px; margin: 0 auto;">
+                    <h2 style="margin-bottom: 40px; font-size: 2em;">Choose Game Mode</h2>
+                    <button onclick="selectMode('local')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        🏠 Same Device
+                    </button>
+                    <br>
+                    <button onclick="selectMode('online')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        🌐 Online
+                    </button>
+                </div>
             </div>
             
             <!-- Step 2: Player Selection -->
             <div id="playerSelection" style="display: none;">
-                <h2 style="margin-bottom: 40px; font-size: 2em;">Select Players</h2>
-                <div style="margin-bottom: 40px;">
-                    <p style="font-size: 1.3em; margin-bottom: 15px;"><strong>Human Players:</strong></p>
-                    <div id="humanPlayerButtons">
-                        <button class="player-count-btn" onclick="setHumanPlayers(1)">1</button>
-                        <button class="player-count-btn selected" onclick="setHumanPlayers(2)">2</button>
-                        <button class="player-count-btn" onclick="setHumanPlayers(3)">3</button>
-                        <button class="player-count-btn" onclick="setHumanPlayers(4)">4</button>
-                        <button class="player-count-btn" onclick="setHumanPlayers(5)">5</button>
-                        <button class="player-count-btn" onclick="setHumanPlayers(6)">6</button>
+                <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 15px; border: 2px solid rgba(76,175,80,0.5); max-width: 700px; margin: 0 auto;">
+                    <h2 style="margin-bottom: 40px; font-size: 2em;">Select Players</h2>
+                    <div style="margin-bottom: 40px;">
+                        <p style="font-size: 1.3em; margin-bottom: 15px;"><strong>Human Players:</strong></p>
+                        <div id="humanPlayerButtons">
+                            <button class="player-count-btn" onclick="setHumanPlayers(1)">1</button>
+                            <button class="player-count-btn selected" onclick="setHumanPlayers(2)">2</button>
+                            <button class="player-count-btn" onclick="setHumanPlayers(3)">3</button>
+                            <button class="player-count-btn" onclick="setHumanPlayers(4)">4</button>
+                            <button class="player-count-btn" onclick="setHumanPlayers(5)">5</button>
+                            <button class="player-count-btn" onclick="setHumanPlayers(6)">6</button>
+                        </div>
                     </div>
-                </div>
-                <div style="margin-bottom: 40px;">
-                    <p style="font-size: 1.3em; margin-bottom: 15px;"><strong>AI Opponents:</strong></p>
-                    <div id="aiPlayerButtons">
-                        <button class="player-count-btn selected" onclick="setAIPlayers(0)">0</button>
-                        <button class="player-count-btn" onclick="setAIPlayers(1)">1</button>
-                        <button class="player-count-btn" onclick="setAIPlayers(2)">2</button>
-                        <button class="player-count-btn" onclick="setAIPlayers(3)">3</button>
-                        <button class="player-count-btn" onclick="setAIPlayers(4)">4</button>
-                        <button class="player-count-btn" onclick="setAIPlayers(5)">5</button>
+                    <div style="margin-bottom: 40px;">
+                        <p style="font-size: 1.3em; margin-bottom: 15px;"><strong>AI Opponents:</strong></p>
+                        <div id="aiPlayerButtons">
+                            <button class="player-count-btn selected" onclick="setAIPlayers(0)">0</button>
+                            <button class="player-count-btn" onclick="setAIPlayers(1)">1</button>
+                            <button class="player-count-btn" onclick="setAIPlayers(2)">2</button>
+                            <button class="player-count-btn" onclick="setAIPlayers(3)">3</button>
+                            <button class="player-count-btn" onclick="setAIPlayers(4)">4</button>
+                            <button class="player-count-btn" onclick="setAIPlayers(5)">5</button>
+                        </div>
                     </div>
-                </div>
-                <p style="font-size: 1.1em; color: #aaa; margin-bottom: 30px;">Maximum 6 total players (Human + AI)</p>
-                <div style="margin-top: 40px;">
-                    <button onclick="backToModeSelection()" style="margin-right: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px;">← Back</button>
-                    <button onclick="confirmPlayerSelection()" id="confirmPlayersBtn" style="padding: 15px 35px; font-size: 1.3em; background: #4CAF50; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Start Game →</button>
+                    <p style="font-size: 1.1em; color: #aaa; margin-bottom: 30px;">Maximum 6 total players (Human + AI)</p>
+                    <div style="margin-top: 40px;">
+                        <button onclick="backToModeSelection()" style="margin-right: 15px; padding: 15px 35px; font-size: 1.3em; border-radius: 8px;">← Back</button>
+                        <button onclick="confirmPlayerSelection()" id="confirmPlayersBtn" style="padding: 15px 35px; font-size: 1.3em; background: #4CAF50; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Start Game →</button>
+                    </div>
                 </div>
             </div>
             
@@ -650,6 +772,14 @@
                 const lobbyDiv = document.getElementById('lobbyPlayers');
                 lobbyDiv.innerHTML = '';
                 
+                const playerCount = Object.keys(players).length;
+                
+                // Add player count header
+                const countHeader = document.createElement('div');
+                countHeader.style.cssText = 'font-size: 1.3em; font-weight: bold; color: #ffd700; margin-bottom: 15px;';
+                countHeader.textContent = `Players: ${playerCount}/6`;
+                lobbyDiv.appendChild(countHeader);
+                
                 Object.entries(players).forEach(([id, player]) => {
                     const playerDiv = document.createElement('div');
                     playerDiv.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
@@ -671,7 +801,7 @@
                 });
                 
                 // Show start button if host and at least 2 players
-                if (onlineGame.isHost && Object.keys(players).length >= 2) {
+                if (onlineGame.isHost && playerCount >= 2) {
                     document.getElementById('startOnlineGame').style.display = 'inline-block';
                 }
             });
@@ -747,6 +877,14 @@
                     
                     const lobbyDiv = document.getElementById('lobbyPlayers');
                     lobbyDiv.innerHTML = '';
+                    
+                    const playerCount = Object.keys(players).length;
+                    
+                    // Add player count header
+                    const countHeader = document.createElement('div');
+                    countHeader.style.cssText = 'font-size: 1.3em; font-weight: bold; color: #ffd700; margin-bottom: 15px;';
+                    countHeader.textContent = `Players: ${playerCount}/6`;
+                    lobbyDiv.appendChild(countHeader);
                     
                     Object.entries(players).forEach(([id, player]) => {
                         const playerDiv = document.createElement('div');
@@ -909,7 +1047,18 @@
                     Object.entries(syncedState.hands).forEach(([playerIndex, handRanks]) => {
                         const player = gameState.players[parseInt(playerIndex)];
                         if (player) {
-                            player.hand = handRanks.map(rank => CARDS.find(c => c.rank === rank));
+                            const oldHandRanks = player.hand.map(c => c.rank);
+                            const newHand = handRanks.map(rank => CARDS.find(c => c.rank === rank));
+                            
+                            // Detect newly acquired card (for NEW tag)
+                            if (parseInt(playerIndex) === onlineGame.gamePlayerId) {
+                                const newCards = handRanks.filter(rank => !oldHandRanks.includes(rank));
+                                if (newCards.length === 1) {
+                                    gameState.newlyAcquiredCard = CARDS.find(c => c.rank === newCards[0]);
+                                }
+                            }
+                            
+                            player.hand = newHand;
                         }
                     });
                 }
@@ -1442,7 +1591,7 @@
                         <h3 style="color: #ffd700; margin-bottom: 10px;">${player.name}</h3>
                         <div style="font-size: 1.2em; margin-bottom: 10px;">
                             <strong>Team OVR:</strong> ${teamOVR}
-                            ${teamBonus > 0 ? `<span style="color: #ffd700; margin-left: 10px;">🏆 Team Bonus: +${teamBonus}</span>` : ''}
+                            ${teamBonus > 0 ? `<span style="color: #ffd700; margin-left: 10px;">🤝 Team Bonus: +${teamBonus}</span>` : ''}
                             ${eraBonus > 0 ? `<span style="color: #90EE90; margin-left: 10px;">📅 Era Bonus: +${eraBonus}</span>` : ''}
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
@@ -1550,7 +1699,7 @@
                         <li>LeBron out of SF: <strong>-4 OVR</strong> (instead of -6)</li>
                     </ul>
                     
-                    <h3 style="color: #90EE90; margin-top: 20px;">🏆 Bonuses (STACKING!)</h3>
+                    <h3 style="color: #90EE90; margin-top: 20px;">🤝 Bonuses (STACKING!)</h3>
                     <p><strong>GOAT Bonus:</strong> LeBron/Jordan get +4 OVR if you have no other 90+ OVR cards</p>
                     
                     <p><strong>Team Chemistry (bonuses stack!):</strong></p>
@@ -1574,7 +1723,7 @@
                     <p>First player to complete their starting lineup (5 cards) triggers the end of the game. Empty positions are automatically filled with the best available cards from your hand (or benchwarmers if none fit). The player with the HIGHEST Team OVR wins!</p>
                     
                     <p style="margin-top: 20px; padding: 10px; background: rgba(255,215,0,0.2); border-radius: 5px;">
-                        <strong>💡 Pro Tip:</strong> Cards in your hand show potential bonuses (🏆 for team, 📅 for era) to help you make strategic decisions!
+                        <strong>💡 Pro Tip:</strong> Cards in your hand show potential bonuses (🤝 for team, 📅 for era, 🐐 for GOAT) to help you make strategic decisions!
                     </p>
                 </div>
             `;
@@ -1833,9 +1982,9 @@
                     <div class="player-name">${player.name}${gameState.viewMode === 'separate' && player.id === gameState.currentView ? ' (YOU)' : ''}${onlineGame.enabled && onlineGame.gamePlayerId !== undefined && player.id === onlineGame.gamePlayerId ? ' (YOU)' : ''}</div>
                     <div class="team-ovr">
                         ${showTeamOVR ? `${teamOVR} OVR` : '??? OVR'}
-                        ${showTeamOVR && goatBonus > 0 ? `<span style="color: #ff69b4; font-size: 0.8em; margin-left: 5px;">🐐+${goatBonus}</span>` : ''}
-                        ${showTeamOVR && teamBonus > 0 ? `<span style="color: #ffd700; font-size: 0.8em; margin-left: 5px;">🏆+${teamBonus}</span>` : ''}
-                        ${showTeamOVR && eraBonus > 0 ? `<span style="color: #90EE90; font-size: 0.8em; margin-left: 5px;">📅+${eraBonus}</span>` : ''}
+                        ${showTeamOVR && goatBonus > 0 ? `<span style="color: #00ff00; font-size: 0.8em; margin-left: 5px;">🐐+${goatBonus}</span>` : ''}
+                        ${showTeamOVR && teamBonus > 0 ? `<span style="color: #00ff00; font-size: 0.8em; margin-left: 5px;">🤝+${teamBonus}</span>` : ''}
+                        ${showTeamOVR && eraBonus > 0 ? `<span style="color: #00ff00; font-size: 0.8em; margin-left: 5px;">📅+${eraBonus}</span>` : ''}
                     </div>
                 </div>
                 <div class="lineup" id="lineup-${player.id}"></div>
@@ -1993,7 +2142,15 @@
                         }
                     }
                 }
-            } else if (gameState.phase === 'playing' && playerId === gameState.currentPlayerIndex && gameState.selectedCard) {
+            } else if (gameState.phase === 'playing' && gameState.selectedCard) {
+                // Check if it's this player's turn
+                const isMyTurn = (onlineGame.enabled && gameState.currentPlayerIndex === onlineGame.gamePlayerId) || 
+                                 (!onlineGame.enabled && playerId === gameState.currentPlayerIndex);
+                
+                if (!isMyTurn) {
+                    return;
+                }
+                
                 // In online mode, only the current player should execute the action
                 // Others will get the update from Firebase
                 if (onlineGame.enabled && playerId !== onlineGame.gamePlayerId) {
@@ -2260,8 +2417,7 @@
                     <div style="font-size: 0.6em; color: rgba(255,255,255,0.8); margin-top: 3px;">${card.primary} | E${card.era}</div>
                     <div style="font-size: 0.6em; color: rgba(255,255,255,0.7); margin-top: 2px;">#${card.rank}</div>
                     ${isNewCard ? '<div style="font-size: 0.65em; color: #00ffff; margin-top: 3px; font-weight: bold;">⭐ NEW ⭐</div>' : ''}
-                    ${hasGoatBonus ? '<div style="font-size: 0.65em; color: #ff69b4; margin-top: 3px; font-weight: bold;">🐐+4</div>' : ''}
-                    ${bonuses.total > 0 ? `<div style="font-size: 0.65em; color: #00ff00; margin-top: 3px; font-weight: bold;">${bonuses.teamChemistry > 0 ? '🏆+' + bonuses.teamChemistry : ''}${bonuses.teamChemistry > 0 && bonuses.era > 0 ? ' ' : ''}${bonuses.era > 0 ? '📅+' + bonuses.era : ''}</div>` : ''}
+                    ${bonuses.total > 0 || hasGoatBonus ? `<div style="font-size: 0.65em; color: #00ff00; margin-top: 3px; font-weight: bold;">${bonuses.teamChemistry > 0 ? '🤝+' + bonuses.teamChemistry : ''}${(bonuses.teamChemistry > 0 && bonuses.era > 0) || (bonuses.teamChemistry > 0 && hasGoatBonus) ? ' ' : ''}${bonuses.era > 0 ? '📅+' + bonuses.era : ''}${((bonuses.era > 0 || bonuses.teamChemistry > 0) && hasGoatBonus) ? ' ' : ''}${hasGoatBonus ? '🐐+4' : ''}</div>` : ''}
                 `;
                 
                 handDiv.appendChild(cardDiv);
@@ -3104,39 +3260,47 @@
         }
 
         function aiTakeTurn(player) {
-            // AI strategy: Ask for positions it needs, then lock in best card with bonuses
+            // AI strategy: ALWAYS ask for positions it needs (mandatory), then lock in best card with bonuses
             // Add 2-3 second delay to make AI moves visible
             setTimeout(() => {
-                if (!gameState.hasAsked && Math.random() > 0.3) {
-                    // AI asks for a position
+                if (!gameState.hasAsked) {
+                    // AI MUST ask for a position (this is mandatory)
                     const emptyPositions = POSITIONS.filter(pos => !player.lineup[pos]);
                     if (emptyPositions.length > 0) {
                         const askPos = emptyPositions[Math.floor(Math.random() * emptyPositions.length)];
-                        const targetIndex = Math.floor(Math.random() * gameState.players.length);
-                        if (targetIndex !== player.id) {
-                            gameState.positionAsked = askPos;
-                            gameState.targetPlayer = targetIndex;
-                            executeAsk();
-                            
-                            // After asking, AI might burn and lock in (2-3 second delays)
+                        
+                        // Pick a random other player to ask
+                        const otherPlayers = gameState.players.filter(p => p.id !== player.id);
+                        const targetPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+                        
+                        gameState.positionAsked = askPos;
+                        gameState.targetPlayer = targetPlayer.id;
+                        executeAsk();
+                        
+                        // After asking, AI will burn if needed, then might lock in (2-3 second delays)
+                        setTimeout(() => {
+                            if (gameState.waitingForBurn === player.id) {
+                                aiBurnCard(player);
+                            }
                             setTimeout(() => {
-                                if (gameState.waitingForBurn === player.id) {
-                                    aiBurnCard(player);
+                                if (gameState.currentPlayerIndex === player.id && Math.random() > 0.4) {
+                                    aiLockInCard(player);
+                                } else {
+                                    endTurn();
                                 }
-                                setTimeout(() => {
-                                    if (gameState.currentPlayerIndex === player.id && Math.random() > 0.4) {
-                                        aiLockInCard(player);
-                                    } else {
-                                        endTurn();
-                                    }
-                                }, 2000); // 2 second delay before lock-in decision
-                            }, 2000); // 2 second delay before burning
-                            return;
-                        }
+                            }, 2000); // 2 second delay before lock-in decision
+                        }, 2000); // 2 second delay before burning
+                        return;
                     }
                 }
                 
-                // AI decides whether to lock in a card
+                // If somehow hasn't asked yet and has no empty positions, just end turn
+                if (!gameState.hasAsked) {
+                    endTurn();
+                    return;
+                }
+                
+                // AI decides whether to lock in a card (only if already asked)
                 if (Math.random() > 0.3) {
                     aiLockInCard(player);
                 } else {
