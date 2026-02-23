@@ -1497,12 +1497,65 @@
             document.getElementById('playerSelection').style.display = 'block';
         }
         
+        // Sound Effects using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'click':
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                case 'card-select':
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                case 'lock-in':
+                    oscillator.frequency.value = 1200;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                case 'burn':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.value = 200;
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.4);
+                    break;
+                case 'success':
+                    oscillator.frequency.value = 1000;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.2);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+            }
+        }
+        
         function setHumanPlayers(count) {
+            playSound('click');
             gameState.menuState.humanPlayers = count;
             updatePlayerButtons();
         }
         
         function setAIPlayers(count) {
+            playSound('click');
             gameState.menuState.aiPlayers = count;
             updatePlayerButtons();
         }
@@ -2102,6 +2155,8 @@
         }
 
         function placeCardInPosition(playerId, position) {
+            console.log('placeCardInPosition called:', {playerId, position, phase: gameState.phase, selectedCard: gameState.selectedCard, onlineMode: onlineGame.enabled, currentPlayerIndex: gameState.currentPlayerIndex, myGamePlayerId: onlineGame.gamePlayerId});
+            
             const player = gameState.players[playerId];
             
             if (gameState.phase === 'captainSelection' && player.captain && !player.captainHidden) {
@@ -2148,11 +2203,16 @@
                     }
                 }
             } else if (gameState.phase === 'playing' && gameState.selectedCard) {
-                // Check if it's this player's turn
-                const isMyTurn = (onlineGame.enabled && gameState.currentPlayerIndex === onlineGame.gamePlayerId) || 
+                console.log('Playing phase, checking if my turn');
+                
+                // Check if it's this player's turn AND we're clicking on the current player's lineup
+                const isMyTurn = (onlineGame.enabled && gameState.currentPlayerIndex === onlineGame.gamePlayerId && playerId === gameState.currentPlayerIndex) || 
                                  (!onlineGame.enabled && playerId === gameState.currentPlayerIndex);
                 
+                console.log('isMyTurn check:', {isMyTurn, onlineEnabled: onlineGame.enabled, currentPlayerIndex: gameState.currentPlayerIndex, myGamePlayerId: onlineGame.gamePlayerId, clickedPlayerId: playerId});
+                
                 if (!isMyTurn) {
+                    console.log('Not my turn, returning');
                     return;
                 }
                 
@@ -2177,6 +2237,7 @@
                         // In online mode, ONLY the current player modifies Firebase
                         // Do NOT modify local state - let Firebase sync handle it
                         if (playerId === onlineGame.gamePlayerId) {
+                            playSound('lock-in');
                             const currentSyncedState = onlineGame.syncedState;
                             const playerHand = currentSyncedState.hands[playerId] || [];
                             const playerLineup = currentSyncedState.lineups[playerId] || {};
@@ -2236,6 +2297,7 @@
                     }
                     
                     // Local mode - modify state directly
+                    playSound('lock-in');
                     player.lineup[position] = card;
                     player.hand = player.hand.filter(c => c.rank !== card.rank);
                     gameState.selectedCard = null;
@@ -2538,6 +2600,7 @@
                 return;
             }
             
+            playSound('burn');
             burnCard(playerId, card);
         }
 
@@ -2576,6 +2639,7 @@
                     showMessage(`${player.name} has already selected a captain!`);
                     return;
                 }
+                playSound('card-select');
                 gameState.selectedCard = card;
                 gameState.selectedCardPlayer = playerId;
                 updateDisplay();
@@ -2588,6 +2652,7 @@
                 
                 // Allow selection if it's your turn OR if you're waiting to burn a card
                 if (playerId === gameState.currentPlayerIndex || playerId === gameState.waitingForBurn) {
+                    playSound('card-select');
                     gameState.selectedCard = card;
                     gameState.selectedCardPlayer = playerId;
                     updateDisplay();
