@@ -251,7 +251,9 @@
         
         /* Green button hover */
         button[style*="4CAF50"]:hover,
-        button[style*="#4CAF50"]:hover {
+        button[style*="#4CAF50"]:hover,
+        button[style*="00ff00"]:hover,
+        button[style*="#00ff00"]:hover {
             box-shadow: 0 5px 15px rgba(76,175,80,0.6) !important;
         }
         
@@ -283,6 +285,12 @@
         button[style*="4169E1"]:hover,
         button[style*="#4169E1"]:hover {
             box-shadow: 0 5px 15px rgba(65,105,225,0.6) !important;
+        }
+        
+        /* Settings button hover (red) */
+        button[style*="FF6347"]:hover,
+        button[style*="#FF6347"]:hover {
+            box-shadow: 0 5px 15px rgba(255,99,71,0.6) !important;
         }
 
         button:disabled {
@@ -653,7 +661,10 @@
         <div id="gameScreen" style="display: none;">
             <div class="game-info" style="margin-bottom: 20px;">
                 <div style="position: relative; margin-bottom: 15px; min-height: 50px;">
-                    <h3 id="turnInfo" style="font-size: 1.4em; margin: 0; text-align: center; width: 100%;">Game Starting...</h3>
+                    <div style="position: absolute; top: 0; left: 0;">
+                        <button onclick="showSettings()" style="padding: 10px 15px; background: #FF6347; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Settings">⚙️</button>
+                    </div>
+                    <h3 id="turnInfo" style="font-size: 1.6em; margin: 0; text-align: center; width: 100%; font-weight: bold;">Game Starting...</h3>
                     <div style="position: absolute; top: 0; right: 0; display: flex; gap: 10px; flex-wrap: wrap;">
                         <button onclick="showInstructions()" style="padding: 10px 15px; background: #32CD32; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Game Instructions">📖</button>
                         <button onclick="showLineupReview()" style="padding: 10px 15px; background: #9370DB; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Review All Lineups">👥</button>
@@ -1476,6 +1487,7 @@
         
         // Menu Navigation Functions
         function selectMode(mode) {
+            playSound('click');
             gameState.menuState.mode = mode;
             document.getElementById('modeSelection').style.display = 'none';
             
@@ -1487,6 +1499,7 @@
         }
         
         function backToModeSelection() {
+            playSound('click');
             document.getElementById('playerSelection').style.display = 'none';
             document.getElementById('onlineRoom').style.display = 'none';
             document.getElementById('modeSelection').style.display = 'block';
@@ -1500,52 +1513,97 @@
         // Sound Effects using Web Audio API
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
+        // Settings
+        let gameSettings = {
+            volume: 0.5,
+            uiScale: 1.0
+        };
+        
         function playSound(type) {
+            if (gameSettings.volume === 0) return; // Muted
+            
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             
+            const baseVolume = gameSettings.volume;
             switch(type) {
                 case 'click':
                     oscillator.frequency.value = 800;
-                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.1 * baseVolume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.1);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.1);
                     break;
                 case 'card-select':
                     oscillator.frequency.value = 600;
-                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(0.15 * baseVolume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.15);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.15);
                     break;
                 case 'lock-in':
                     oscillator.frequency.value = 1200;
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.2 * baseVolume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.3);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.3);
                     break;
                 case 'burn':
                     oscillator.type = 'sawtooth';
                     oscillator.frequency.value = 200;
-                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                    gainNode.gain.setValueAtTime(0.15 * baseVolume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.4);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.4);
                     break;
                 case 'success':
                     oscillator.frequency.value = 1000;
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.2 * baseVolume, audioContext.currentTime);
                     oscillator.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.2);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.3);
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.3);
                     break;
             }
+        }
+        
+        function showSettings() {
+            playSound('click');
+            const modal = document.getElementById('modalBody');
+            modal.innerHTML = `
+                <h3 style="margin-bottom: 20px;">Settings</h3>
+                <div style="margin: 20px 0;">
+                    <label style="display: block; margin-bottom: 10px; font-size: 1.1em;">
+                        <strong>Volume:</strong> <span id="volumeValue">${Math.round(gameSettings.volume * 100)}%</span>
+                    </label>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="${gameSettings.volume * 100}" 
+                           style="width: 100%;" oninput="updateVolume(this.value)">
+                </div>
+                <div style="margin: 20px 0;">
+                    <label style="display: block; margin-bottom: 10px; font-size: 1.1em;">
+                        <strong>UI Scale:</strong> <span id="scaleValue">${Math.round(gameSettings.uiScale * 100)}%</span>
+                    </label>
+                    <input type="range" id="scaleSlider" min="75" max="125" value="${gameSettings.uiScale * 100}" 
+                           style="width: 100%;" oninput="updateUIScale(this.value)">
+                </div>
+                <button onclick="closeModal()" style="margin-top: 20px; padding: 12px 30px;">Close</button>
+            `;
+            showModal('Settings');
+        }
+        
+        function updateVolume(value) {
+            gameSettings.volume = value / 100;
+            document.getElementById('volumeValue').textContent = Math.round(value) + '%';
+            playSound('click'); // Test sound
+        }
+        
+        function updateUIScale(value) {
+            gameSettings.uiScale = value / 100;
+            document.getElementById('scaleValue').textContent = Math.round(value) + '%';
+            document.body.style.fontSize = (16 * gameSettings.uiScale) + 'px';
         }
         
         function setHumanPlayers(count) {
@@ -1593,6 +1651,7 @@
         }
 
         function showLineupReview() {
+            playSound('click');
             const modal = document.getElementById('modalBody');
             
             let html = '<div style="max-height: 500px; overflow-y: auto;">';
@@ -1695,6 +1754,7 @@
         }
 
         function showInstructions() {
+            playSound('click');
             const modal = document.getElementById('modalBody');
             modal.innerHTML = `
                 <div style="max-height: 500px; overflow-y: auto; text-align: left;">
@@ -1783,6 +1843,7 @@
         }
 
         function showCardIndex() {
+            playSound('click');
             const modal = document.getElementById('modalBody');
             
             // Group cards by OVR tier with new rarity names
@@ -2962,6 +3023,7 @@
         }
 
         function askForPosition() {
+            playSound('click');
             const modal = document.getElementById('modalBody');
             
             // Reset selections when opening modal
@@ -3139,6 +3201,7 @@
         }
 
         function endTurn() {
+            playSound('click');
             const prevPlayer = gameState.players[gameState.currentPlayerIndex];
             gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
             gameState.selectedCard = null;
