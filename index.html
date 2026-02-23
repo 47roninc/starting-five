@@ -616,7 +616,7 @@
                 <h2 style="margin-bottom: 40px; font-size: 2em;">Online Multiplayer</h2>
                 <div id="roomCreation" style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); max-width: 800px; margin: 0 auto;">
                     <p style="margin: 25px 0; font-size: 1.3em;">Enter your name:</p>
-                    <input type="text" id="playerName" placeholder="Your Name" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555;">
+                    <input type="text" id="playerName" placeholder="Your Name" maxlength="16" style="padding: 15px; font-size: 1.2em; border-radius: 8px; margin: 15px; min-width: 250px; border: 2px solid #555;">
                     <br>
                     
                     <div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin-top: 30px; flex-wrap: wrap;">
@@ -649,9 +649,9 @@
 
         <div id="gameScreen" style="display: none;">
             <div class="game-info" style="margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 id="turnInfo" style="font-size: 1.4em; margin: 0; flex: 1; min-width: 200px;">Game Starting...</h3>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="position: relative; margin-bottom: 15px; min-height: 50px;">
+                    <h3 id="turnInfo" style="font-size: 1.4em; margin: 0; text-align: center; width: 100%;">Game Starting...</h3>
+                    <div style="position: absolute; top: 0; right: 0; display: flex; gap: 10px; flex-wrap: wrap;">
                         <button onclick="showInstructions()" style="padding: 10px 15px; background: #32CD32; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Game Instructions">📖</button>
                         <button onclick="showLineupReview()" style="padding: 10px 15px; background: #9370DB; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Review All Lineups">👥</button>
                         <button onclick="showCardIndex()" style="padding: 10px 15px; background: #4169E1; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Card Index">📋</button>
@@ -775,17 +775,17 @@
                 
                 Object.entries(players).forEach(([id, player]) => {
                     const playerDiv = document.createElement('div');
-                    playerDiv.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
+                    playerDiv.style.cssText = 'display: flex; align-items: center; justify-content: center; padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px; position: relative;';
                     
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = player.name + (id === onlineGame.playerId ? ' (You)' : '');
                     playerDiv.appendChild(nameSpan);
                     
-                    // Show kick button if host and not yourself
+                    // Show kick button if host and not yourself (positioned absolutely)
                     if (onlineGame.isHost && id !== onlineGame.playerId) {
                         const kickBtn = document.createElement('button');
                         kickBtn.textContent = '❌ Kick';
-                        kickBtn.style.cssText = 'padding: 5px 15px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;';
+                        kickBtn.style.cssText = 'padding: 5px 15px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; position: absolute; right: 10px;';
                         kickBtn.onclick = () => kickPlayer(id);
                         playerDiv.appendChild(kickBtn);
                     }
@@ -881,7 +881,7 @@
                     
                     Object.entries(players).forEach(([id, player]) => {
                         const playerDiv = document.createElement('div');
-                        playerDiv.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
+                        playerDiv.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px; text-align: center;';
                         playerDiv.textContent = player.name + (id === onlineGame.playerId ? ' (You)' : '');
                         lobbyDiv.appendChild(playerDiv);
                     });
@@ -2009,7 +2009,11 @@
                 slot.className = 'position-slot';
                 
                 // Make slots clickable during captain selection or when locking in cards (NOT for AI players)
-                const isCurrentPlayer = !player.isAI && (player.id === gameState.currentPlayerIndex || gameState.phase === 'captainSelection');
+                const isCurrentPlayer = !player.isAI && (
+                    gameState.phase === 'captainSelection' ||
+                    (onlineGame.enabled && player.id === onlineGame.gamePlayerId && gameState.currentPlayerIndex === onlineGame.gamePlayerId) ||
+                    (!onlineGame.enabled && player.id === gameState.currentPlayerIndex)
+                );
                 const cardToPlace = gameState.phase === 'captainSelection' ? player.captain : 
                                    (isCurrentPlayer ? gameState.selectedCard : null);
                 
@@ -2847,25 +2851,32 @@
                 
                 if (gameState.waitingForBurn !== null) {
                     const burningPlayer = gameState.players[gameState.waitingForBurn];
-                    // Disable buttons if burner is AI
+                    // Disable buttons if burner is AI OR if in online mode and not the burning player
                     const isAI = burningPlayer.isAI;
+                    const isNotMyTurn = onlineGame.enabled && gameState.waitingForBurn !== onlineGame.gamePlayerId;
+                    const buttonDisabled = !gameState.selectedCard || isAI || isNotMyTurn;
+                    
                     controlsDiv.innerHTML = viewSwitcher + `
                         <h3>${burningPlayer.name} Must Burn a Card</h3>
-                        ${isAI ? '<p>AI is thinking...</p>' : '<p>Select a card from your hand, then click Burn Card</p>'}
-                        <button onclick="confirmBurn()" ${!gameState.selectedCard || isAI ? 'disabled' : ''} style="background: #ff0000; color: white;">Burn Card</button>
+                        ${isAI ? '<p>AI is thinking...</p>' : isNotMyTurn ? '<p style="color: #aaa;">Waiting for them to burn...</p>' : '<p>Select a card from your hand, then click Burn Card</p>'}
+                        <button onclick="confirmBurn()" ${buttonDisabled ? 'disabled' : ''} style="background: #ff0000; color: white;">Burn Card</button>
                     `;
                 } else {
-                    // Disable buttons if current player is AI
+                    // Disable buttons if current player is AI OR if in online mode and not your turn
                     const isAI = currentPlayer.isAI;
+                    const isNotMyTurn = onlineGame.enabled && gameState.currentPlayerIndex !== onlineGame.gamePlayerId;
+                    const buttonsDisabled = isAI || isNotMyTurn;
+                    
                     controlsDiv.innerHTML = viewSwitcher + `
                         <h3>${currentPlayer.name}'s Turn</h3>
                         ${isAI ? '<p style="margin-top: 15px;">AI is thinking...</p>' : ''}
+                        ${isNotMyTurn ? '<p style="margin-top: 15px; color: #aaa;">Waiting for their turn...</p>' : ''}
                         <div style="margin-top: 15px;">
-                            <button onclick="askForPosition()" ${gameState.hasAsked || isAI ? 'disabled' : ''}>Ask for Position</button>
-                            <button onclick="endTurn()" ${isAI ? 'disabled' : ''}>End Turn</button>
+                            <button onclick="askForPosition()" ${gameState.hasAsked || buttonsDisabled ? 'disabled' : ''}>Ask for Position</button>
+                            <button onclick="endTurn()" ${buttonsDisabled ? 'disabled' : ''}>End Turn</button>
                         </div>
-                        ${!isAI && gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Select a card from your hand, then click a position slot to lock it in</p>' : ''}
-                        ${!isAI && !gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Click "Ask for Position" to request a card from an opponent</p>' : ''}
+                        ${!buttonsDisabled && gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Select a card from your hand, then click a position slot to lock it in</p>' : ''}
+                        ${!buttonsDisabled && !gameState.hasAsked ? '<p style="margin-top: 10px; font-size: 0.9em; color: #aaa;">Click "Ask for Position" to request a card from an opponent</p>' : ''}
                     `;
                 }
             }
