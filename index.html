@@ -1119,12 +1119,20 @@
                 // Update game phase
                 const prevPhase = gameState.phase;
                 if (syncedState.phase) {
+                    console.log('FIREBASE SYNC - Phase update:', {
+                        prevPhase,
+                        newPhase: syncedState.phase,
+                        willTriggerEndGame: prevPhase !== 'final' && syncedState.phase === 'final'
+                    });
+                    
                     gameState.phase = syncedState.phase;
                     
                     // If phase changed to 'final', trigger endGame to do autofill and show results
                     if (prevPhase !== 'final' && syncedState.phase === 'final') {
+                        console.log('TRIGGERING ENDGAME from Firebase sync!');
                         // Call endGame but skip the Firebase sync part since it's already synced
                         setTimeout(() => {
+                            console.log('Starting autofill...');
                             // Fill empty positions with best available cards from hand
                             gameState.players.forEach(player => {
                                 POSITIONS.forEach(pos => {
@@ -1170,6 +1178,7 @@
                                 });
                             });
 
+                            console.log('Autofill complete. Showing final results...');
                             // Calculate and show final scores (rest of endGame logic)
                             showFinalResults();
                         }, 100);
@@ -1593,11 +1602,13 @@
                     oscillator.stop(audioContext.currentTime + 0.1);
                     break;
                 case 'card-select':
-                    oscillator.frequency.value = 600;
-                    gainNode.gain.setValueAtTime(0.15 * baseVolume, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.15);
+                    // Paper-like sound: quick noise burst
+                    oscillator.type = 'square';
+                    oscillator.frequency.value = 150;
+                    gainNode.gain.setValueAtTime(0.08 * baseVolume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01 * baseVolume, audioContext.currentTime + 0.08);
                     oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.15);
+                    oscillator.stop(audioContext.currentTime + 0.08);
                     break;
                 case 'lock-in':
                     oscillator.frequency.value = 1200;
@@ -2121,7 +2132,7 @@
                 });
                 
                 // GOAT bonus
-                lockedCards.forEach(({ card }) => {
+                lockedCards.forEach(card => {
                     if (card && card.goat) {
                         const has90Plus = lockedCards.some(lc => lc !== card && lc.ovr >= 90);
                         if (!has90Plus) {
@@ -2446,11 +2457,20 @@
                             
                             // Check if player has 5 locked in (game should end)
                             const lockedCount = Object.values(newLineup).filter(rank => rank !== null).length;
+                            console.log('ONLINE LOCK-IN - Game End Check:', {
+                                playerId,
+                                lockedCount,
+                                newLineup,
+                                shouldEndGame: lockedCount >= 5
+                            });
+                            
                             if (lockedCount >= 5) {
+                                console.log('ENDING GAME! Setting phase to final in Firebase');
                                 updates.phase = 'final';
                                 updates.waitingForBurn = null;
                             }
                             
+                            console.log('Syncing to Firebase:', updates);
                             syncToFirebase(updates);
                         }
                         
@@ -3428,6 +3448,7 @@
         }
         
         function showFinalResults() {
+            console.log('showFinalResults called');
             // Calculate final scores
             const scores = gameState.players.map(player => {
                 const ovr = calculateTeamOVR(player);
