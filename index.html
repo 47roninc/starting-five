@@ -1515,7 +1515,7 @@
         
         // Settings
         let gameSettings = {
-            volume: 0.5,
+            volume: 1.0,
             uiScale: 1.0
         };
         
@@ -1589,7 +1589,6 @@
                     <input type="range" id="scaleSlider" min="75" max="125" value="${gameSettings.uiScale * 100}" 
                            style="width: 100%;" oninput="updateUIScale(this.value)">
                 </div>
-                <button onclick="closeModal()" style="margin-top: 20px; padding: 12px 30px;">Close</button>
             `;
             showModal('Settings');
         }
@@ -2133,7 +2132,7 @@
                 // Make slots clickable during captain selection or when locking in cards (NOT for AI players)
                 const isCurrentPlayer = !player.isAI && (
                     gameState.phase === 'captainSelection' ||
-                    (onlineGame.enabled && player.id === onlineGame.gamePlayerId && gameState.currentPlayerIndex === player.id) ||
+                    (onlineGame.enabled && player.id === onlineGame.gamePlayerId && gameState.currentPlayerIndex === onlineGame.gamePlayerId) ||
                     (!onlineGame.enabled && player.id === gameState.currentPlayerIndex)
                 );
                 const cardToPlace = gameState.phase === 'captainSelection' ? player.captain : 
@@ -2216,8 +2215,6 @@
         }
 
         function placeCardInPosition(playerId, position) {
-            console.log('placeCardInPosition called:', {playerId, position, phase: gameState.phase, selectedCard: gameState.selectedCard, onlineMode: onlineGame.enabled, currentPlayerIndex: gameState.currentPlayerIndex, myGamePlayerId: onlineGame.gamePlayerId});
-            
             const player = gameState.players[playerId];
             
             if (gameState.phase === 'captainSelection' && player.captain && !player.captainHidden) {
@@ -2264,16 +2261,15 @@
                     }
                 }
             } else if (gameState.phase === 'playing' && gameState.selectedCard) {
-                console.log('Playing phase, checking if my turn');
+                // CRITICAL: Check if this is actually YOUR turn and YOUR lineup
+                // In online mode: playerId is the clicked player, must match both current player AND your game ID
+                // In local mode: playerId must match current player
                 
-                // Check if it's this player's turn AND we're clicking on the current player's lineup
-                const isMyTurn = (onlineGame.enabled && gameState.currentPlayerIndex === onlineGame.gamePlayerId && playerId === gameState.currentPlayerIndex) || 
-                                 (!onlineGame.enabled && playerId === gameState.currentPlayerIndex);
-                
-                console.log('isMyTurn check:', {isMyTurn, onlineEnabled: onlineGame.enabled, currentPlayerIndex: gameState.currentPlayerIndex, myGamePlayerId: onlineGame.gamePlayerId, clickedPlayerId: playerId});
+                const isMyTurn = onlineGame.enabled ? 
+                    (playerId === onlineGame.gamePlayerId && gameState.currentPlayerIndex === onlineGame.gamePlayerId) :
+                    (playerId === gameState.currentPlayerIndex);
                 
                 if (!isMyTurn) {
-                    console.log('Not my turn, returning');
                     return;
                 }
                 
@@ -3160,21 +3156,9 @@
                 
                 if (onlineGame.enabled) {
                     // In online mode, only modify Firebase
+                    // NO CARD DRAWN when player has no matching cards
                     if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
-                        const currentSyncedState = onlineGame.syncedState;
-                        const targetHand = currentSyncedState.hands[gameState.targetPlayer] || [];
-                        
-                        // Target player draws a card
-                        let newDeckIndex = currentSyncedState.deckIndex || 0;
-                        const newTargetHand = [...targetHand];
-                        if (newDeckIndex < currentSyncedState.deck.length) {
-                            newTargetHand.push(currentSyncedState.deck[newDeckIndex]);
-                            newDeckIndex++;
-                        }
-                        
                         const updates = {};
-                        updates[`hands/${gameState.targetPlayer}`] = newTargetHand;
-                        updates.deckIndex = newDeckIndex;
                         updates.hasAsked = true;
                         syncToFirebase(updates);
                     }
@@ -3184,11 +3168,7 @@
                     gameState.positionAsked = null;
                 } else {
                     // Local mode - modify state directly
-                    let drawnCard = null;
-                    if (gameState.deck.length > 0) {
-                        drawnCard = gameState.deck.pop();
-                        targetPlayer.hand.push(drawnCard);
-                    }
+                    // NO CARD DRAWN when player has no matching cards
                     
                     closeModal();
                     gameState.targetPlayer = null;
