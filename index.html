@@ -1117,8 +1117,63 @@
                 }
                 
                 // Update game phase
+                const prevPhase = gameState.phase;
                 if (syncedState.phase) {
                     gameState.phase = syncedState.phase;
+                    
+                    // If phase changed to 'final', trigger endGame to do autofill and show results
+                    if (prevPhase !== 'final' && syncedState.phase === 'final') {
+                        // Call endGame but skip the Firebase sync part since it's already synced
+                        setTimeout(() => {
+                            // Fill empty positions with best available cards from hand
+                            gameState.players.forEach(player => {
+                                POSITIONS.forEach(pos => {
+                                    if (!player.lineup[pos]) {
+                                        // Find all cards in hand that can fill this position
+                                        const eligibleCards = player.hand.filter(card => 
+                                            canPlaceCardAtPosition(card, pos)
+                                        );
+                                        
+                                        if (eligibleCards.length > 0) {
+                                            // Calculate the best card considering OVR, penalties, and bonuses
+                                            let bestCard = null;
+                                            let bestScore = -Infinity;
+                                            
+                                            eligibleCards.forEach(card => {
+                                                // Temporarily place card to calculate bonuses
+                                                player.lineup[pos] = card;
+                                                const teamOVR = calculateTeamOVR(player);
+                                                player.lineup[pos] = null; // Remove temp placement
+                                                
+                                                // Score includes: card OVR - position penalty + team bonuses
+                                                const penalty = calculatePositionPenalty(card, pos);
+                                                const score = teamOVR; // This already includes everything
+                                                
+                                                if (score > bestScore) {
+                                                    bestScore = score;
+                                                    bestCard = card;
+                                                }
+                                            });
+                                            
+                                            if (bestCard) {
+                                                player.lineup[pos] = bestCard;
+                                                player.hand = player.hand.filter(c => c !== bestCard);
+                                            } else {
+                                                // No eligible cards, use benchwarmer
+                                                player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                                            }
+                                        } else {
+                                            // No eligible cards, use benchwarmer
+                                            player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                                        }
+                                    }
+                                });
+                            });
+
+                            // Calculate and show final scores (rest of endGame logic)
+                            showFinalResults();
+                        }, 100);
+                    }
                 }
                 
                 // Update current player
@@ -3214,13 +3269,18 @@
                     if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
                         const updates = {};
                         updates.hasAsked = true;
-                        updates.lastMessage = noCardsMessage;
                         syncToFirebase(updates);
                     }
                     
                     closeModal();
                     gameState.targetPlayer = null;
                     gameState.positionAsked = null;
+                    
+                    // Show message temporarily
+                    document.getElementById('turnInfo').textContent = noCardsMessage;
+                    setTimeout(() => {
+                        updateDisplay();
+                    }, 2500);
                 } else {
                     // Local mode - modify state directly
                     // NO CARD DRAWN when player has no matching cards
@@ -3230,12 +3290,11 @@
                     gameState.positionAsked = null;
                     gameState.hasAsked = true;
                     
-                    // Show the no-cards message, then update display which will show the instruction
-                    showMessage(noCardsMessage);
+                    // Show the no-cards message in turnInfo temporarily
+                    document.getElementById('turnInfo').textContent = noCardsMessage;
                     setTimeout(() => {
                         updateDisplay();
-                    }, 2000); // Show message for 2 seconds before updating
-                    return; // Don't call updateDisplay immediately
+                    }, 2500);
                 }
             }
         }
@@ -3363,6 +3422,12 @@
                 });
             });
 
+            // Calculate and show final scores
+            showFinalResults();
+            updateDisplay();
+        }
+        
+        function showFinalResults() {
             // Calculate final scores
             const scores = gameState.players.map(player => {
                 const ovr = calculateTeamOVR(player);
@@ -3424,8 +3489,6 @@
                 <button onclick="location.reload()" style="width: 100%; padding: 15px; font-size: 1.2em; margin-top: 10px;">🎮 New Game</button>
             `;
             showModal('🏆 Final Results');
-            
-            updateDisplay();
         }
 
         function showMessage(text) {
@@ -3582,7 +3645,10 @@
                         instructionText = `${burningPlayer.name}, select a card from your hand and click "Burn Card", then you can lock in a card or end your turn`;
                     } else {
                         // Another player needs to burn (after someone locked in a card and gave them a card)
-                        instructionText = `${burningPlayer.name}, select a card and click "Burn Card". Then it's your turn.`;
+                        // Calculate who goes next: clockwise from the locker
+                        const lockerIndex = (gameState.waitingForBurn + 1) % gameState.players.length;
+                        const nextPlayerAfterBurn = gameState.players[(lockerIndex + 1) % gameState.players.length];
+                        instructionText = `${burningPlayer.name}, select a card and click "Burn Card". Then it's ${nextPlayerAfterBurn.name}'s turn.`;
                     }
                 } else {
                     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
