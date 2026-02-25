@@ -2389,6 +2389,13 @@
                                 }
                             }
                             
+                            // Check if player has 5 locked in (game should end)
+                            const lockedCount = Object.values(newLineup).filter(rank => rank !== null).length;
+                            if (lockedCount >= 5) {
+                                updates.phase = 'final';
+                                updates.waitingForBurn = null;
+                            }
+                            
                             syncToFirebase(updates);
                         }
                         
@@ -2609,9 +2616,11 @@
                     
                     // Check who was burning
                     if (playerId !== gameState.currentPlayerIndex) {
-                        // Turn changes
-                        const lockerIndex = (playerId + 1) % gameState.players.length;
-                        const nextIndex = (lockerIndex + 1) % gameState.players.length;
+                        // Someone else burned (after receiving a card from lock-in)
+                        // Turn order: Locker → gives to counterclockwise → they burn → clockwise from locker goes next
+                        // Example (3 players): P0 locks → P2 gets card & burns → P1 goes next
+                        const lockerIndex = (playerId + 1) % gameState.players.length; // Clockwise from burner
+                        const nextIndex = (lockerIndex + 1) % gameState.players.length; // Clockwise from locker
                         updates.currentPlayerIndex = nextIndex;
                         updates.hasAsked = false;
                     }
@@ -3197,7 +3206,7 @@
                 }
             } else {
                 // No matching cards - no burn needed
-                showMessage(`${targetPlayer.name} has no ${pos} cards! ${currentPlayer.name} can now lock in a card or end their turn.`);
+                const noCardsMessage = `${targetPlayer.name} has no ${pos} cards!`;
                 
                 if (onlineGame.enabled) {
                     // In online mode, only modify Firebase
@@ -3205,6 +3214,7 @@
                     if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
                         const updates = {};
                         updates.hasAsked = true;
+                        updates.lastMessage = noCardsMessage;
                         syncToFirebase(updates);
                     }
                     
@@ -3220,7 +3230,12 @@
                     gameState.positionAsked = null;
                     gameState.hasAsked = true;
                     
-                    updateDisplay();
+                    // Show the no-cards message, then update display which will show the instruction
+                    showMessage(noCardsMessage);
+                    setTimeout(() => {
+                        updateDisplay();
+                    }, 2000); // Show message for 2 seconds before updating
+                    return; // Don't call updateDisplay immediately
                 }
             }
         }
@@ -3349,13 +3364,28 @@
             });
 
             // Calculate final scores
-            const scores = gameState.players.map(player => ({
-                player: player.name,
-                ovr: calculateTeamOVR(player),
-                playerId: player.id
-            }));
+            const scores = gameState.players.map(player => {
+                const ovr = calculateTeamOVR(player);
+                // Find best card in hand (lowest rank number = best card)
+                const bestHandCard = player.hand.length > 0 ? 
+                    Math.min(...player.hand.map(c => c.rank)) : 999;
+                
+                return {
+                    player: player.name,
+                    ovr: ovr,
+                    playerId: player.id,
+                    bestHandRank: bestHandCard
+                };
+            });
 
-            scores.sort((a, b) => b.ovr - a.ovr);
+            // Sort by OVR descending, then by best hand rank ascending (lower rank = better card)
+            scores.sort((a, b) => {
+                if (b.ovr !== a.ovr) {
+                    return b.ovr - a.ovr; // Higher OVR wins
+                }
+                // Tiebreaker: lower rank number = better card
+                return a.bestHandRank - b.bestHandRank;
+            });
             
             const winner = scores[0];
             
@@ -3379,11 +3409,17 @@
                 <h3 style="color: #00ff00; text-align: center; font-size: 1.5em; margin-top: 20px;">Winner: ${winner.player}</h3>
                 <div style="margin: 20px 0;">
                     <h4>Final Standings:</h4>
-                    ${scores.map((s, i) => `
-                        <div style="padding: 15px; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: 1.1em;">
-                            <strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR
-                        </div>
-                    `).join('')}
+                    ${scores.map((s, i) => {
+                        // Check if tied with previous player
+                        const tiedWithPrev = i > 0 && s.ovr === scores[i-1].ovr;
+                        const tieInfo = tiedWithPrev ? ` <span style="color: #aaa; font-size: 0.9em;">(Tiebreaker: Best card rank #${s.bestHandRank})</span>` : '';
+                        
+                        return `
+                            <div style="padding: 15px; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: 1.1em;">
+                                <strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR${tieInfo}
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
                 <button onclick="location.reload()" style="width: 100%; padding: 15px; font-size: 1.2em; margin-top: 10px;">🎮 New Game</button>
             `;
@@ -3545,8 +3581,8 @@
                         // Current player needs to burn (after asking for position)
                         instructionText = `${burningPlayer.name}, select a card from your hand and click "Burn Card", then you can lock in a card or end your turn`;
                     } else {
-                        // Another player needs to burn (after someone locked in a card)
-                        instructionText = `${burningPlayer.name}, select a card and click "Burn Card". Then ${currentPlayer.name}'s turn continues.`;
+                        // Another player needs to burn (after someone locked in a card and gave them a card)
+                        instructionText = `${burningPlayer.name}, select a card and click "Burn Card". Then it's your turn.`;
                     }
                 } else {
                     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
