@@ -2456,11 +2456,12 @@
                             }
                             
                             // Check if player has 5 locked in (game should end)
-                            const lockedCount = Object.values(newLineup).filter(rank => rank !== null).length;
+                            const lockedCount = Object.values(newLineup).filter(rank => rank).length; // Count truthy values
                             console.log('ONLINE LOCK-IN - Game End Check:', {
                                 playerId,
                                 lockedCount,
                                 newLineup,
+                                allValues: Object.values(newLineup),
                                 shouldEndGame: lockedCount >= 5
                             });
                             
@@ -2661,8 +2662,8 @@
                     <div style="font-size: 0.65em;">${card.positions.join('/')}</div>
                     <div style="font-size: 0.6em; color: rgba(255,255,255,0.8); margin-top: 3px;">${card.primary} | E${card.era}</div>
                     <div style="font-size: 0.6em; color: rgba(255,255,255,0.7); margin-top: 2px;">#${card.rank}</div>
-                    ${isNewCard ? '<div style="font-size: 0.65em; color: #00ffff; margin-top: 3px; font-weight: bold;">⭐ NEW ⭐</div>' : ''}
                     ${bonuses.total > 0 || hasGoatBonus ? `<div style="font-size: 0.65em; color: #00ff00; margin-top: 3px; font-weight: bold;">${bonuses.teamChemistry > 0 ? '🤝+' + bonuses.teamChemistry : ''}${(bonuses.teamChemistry > 0 && bonuses.era > 0) || (bonuses.teamChemistry > 0 && hasGoatBonus) ? ' ' : ''}${bonuses.era > 0 ? '📅+' + bonuses.era : ''}${((bonuses.era > 0 || bonuses.teamChemistry > 0) && hasGoatBonus) ? ' ' : ''}${hasGoatBonus ? '🐐+4' : ''}</div>` : ''}
+                    ${isNewCard ? '<div style="font-size: 0.65em; color: #00ffff; margin-top: 3px; font-weight: bold;">⭐ NEW ⭐</div>' : ''}
                 `;
                 
                 handDiv.appendChild(cardDiv);
@@ -3296,8 +3297,11 @@
                     gameState.targetPlayer = null;
                     gameState.positionAsked = null;
                     
-                    // Show message temporarily
-                    document.getElementById('turnInfo').textContent = noCardsMessage;
+                    // Show message temporarily in instructionText
+                    const instructionElement = document.getElementById('instructionText');
+                    if (instructionElement) {
+                        instructionElement.textContent = noCardsMessage;
+                    }
                     setTimeout(() => {
                         updateDisplay();
                     }, 2500);
@@ -3310,8 +3314,11 @@
                     gameState.positionAsked = null;
                     gameState.hasAsked = true;
                     
-                    // Show the no-cards message in turnInfo temporarily
-                    document.getElementById('turnInfo').textContent = noCardsMessage;
+                    // Show the no-cards message in instructionText temporarily
+                    const instructionElement = document.getElementById('instructionText');
+                    if (instructionElement) {
+                        instructionElement.textContent = noCardsMessage;
+                    }
                     setTimeout(() => {
                         updateDisplay();
                     }, 2500);
