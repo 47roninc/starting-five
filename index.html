@@ -573,15 +573,31 @@
             
             <!-- Step 1: Mode Selection -->
             <div id="modeSelection">
-                <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); max-width: 600px; margin: 0 auto;">
-                    <h2 style="margin-bottom: 40px; font-size: 2em;">Choose Game Mode</h2>
-                    <button onclick="selectMode('local')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                        🏠 Same Device
-                    </button>
-                    <br>
-                    <button onclick="selectMode('online')" style="width: 350px; height: 90px; font-size: 1.6em; margin: 20px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                        🌐 Online
-                    </button>
+                <div style="display: flex; gap: 30px; max-width: 1000px; margin: 0 auto; align-items: flex-start; flex-wrap: wrap; justify-content: center;">
+                    <!-- Left: Mode buttons -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); flex: 1; min-width: 400px;">
+                        <h2 style="margin-bottom: 40px; font-size: 2em;">Choose Game Mode</h2>
+                        <button onclick="selectMode('local')" style="width: 100%; max-width: 350px; height: 90px; font-size: 1.6em; margin: 20px auto; display: block; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                            🏠 Same Device
+                        </button>
+                        <button onclick="selectMode('online')" style="width: 100%; max-width: 350px; height: 90px; font-size: 1.6em; margin: 20px auto; display: block; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 15px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                            🌐 Online
+                        </button>
+                    </div>
+                    
+                    <!-- Right: Info buttons -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); min-width: 280px;">
+                        <h3 style="margin: 0 0 20px 0; font-size: 1.3em; text-align: center;">Game Info</h3>
+                        <button onclick="showInstructions()" style="width: 100%; padding: 15px 20px; margin: 10px 0; background: #32CD32; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold;">
+                            <span style="font-size: 1.3em;">📖</span> Instructions
+                        </button>
+                        <button onclick="showCardIndex()" style="width: 100%; padding: 15px 20px; margin: 10px 0; background: #4169E1; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold;">
+                            <span style="font-size: 1.3em;">📋</span> Card Index
+                        </button>
+                        <button onclick="showSettings()" style="width: 100%; padding: 15px 20px; margin: 10px 0; background: #FF6347; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold;">
+                            <span style="font-size: 1.3em;">⚙️</span> Settings
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -667,8 +683,8 @@
                     <h3 id="turnInfo" style="font-size: 1.6em; margin: 0; text-align: center; width: 100%; font-weight: bold;">Game Starting...</h3>
                     <div style="position: absolute; top: 0; right: 0; display: flex; gap: 10px; flex-wrap: wrap;">
                         <button onclick="showInstructions()" style="padding: 10px 15px; background: #32CD32; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Game Instructions">📖</button>
-                        <button onclick="showLineupReview()" style="padding: 10px 15px; background: #9370DB; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Review All Lineups">👥</button>
                         <button onclick="showCardIndex()" style="padding: 10px 15px; background: #4169E1; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Card Index">📋</button>
+                        <button onclick="showLineupReview()" style="padding: 10px 15px; background: #9370DB; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Review All Lineups">👥</button>
                     </div>
                 </div>
                 <div class="message" id="messageBox" style="font-size: 1.2em; min-height: 60px;">
@@ -1166,22 +1182,31 @@
                                             if (bestCard) {
                                                 player.lineup[pos] = bestCard;
                                                 player.hand = player.hand.filter(c => c !== bestCard);
+                                                console.log(`Autofilled ${player.name} ${pos} with ${bestCard.name}`);
                                             } else {
                                                 // No eligible cards, use benchwarmer
                                                 player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                                                console.log(`Autofilled ${player.name} ${pos} with Benchwarmer`);
                                             }
                                         } else {
                                             // No eligible cards, use benchwarmer
                                             player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
+                                            console.log(`Autofilled ${player.name} ${pos} with Benchwarmer`);
                                         }
                                     }
                                 });
                             });
 
-                            console.log('Autofill complete. Showing final results...');
-                            // Calculate and show final scores (rest of endGame logic)
-                            showFinalResults();
-                        }, 100);
+                            console.log('Autofill complete. Updating display...');
+                            // Force update display to show autofilled cards
+                            updateDisplay();
+                            
+                            // Wait a bit for render, then show results
+                            setTimeout(() => {
+                                console.log('Showing final results...');
+                                showFinalResults();
+                            }, 500);
+                        }, 300);
                     }
                 }
                 
@@ -2667,7 +2692,7 @@
                 }
                 
                 cardDiv.innerHTML = `
-                    <div style="font-size: 0.75em; font-weight: bold;">${card.name}</div>
+                    <div style="font-size: ${card.name.length > 18 ? '0.65em' : card.name.length > 15 ? '0.7em' : '0.75em'}; font-weight: bold;">${card.name}</div>
                     <div style="font-size: 1.3em; font-weight: bold; margin: 5px 0;">${card.ovr}</div>
                     <div style="font-size: 0.65em;">${card.positions.join('/')}</div>
                     <div style="font-size: 0.6em; color: rgba(255,255,255,0.8); margin-top: 3px;">${card.primary} | E${card.era}</div>
@@ -3517,9 +3542,21 @@
                         const tiedWithPrev = i > 0 && s.ovr === scores[i-1].ovr;
                         const tieInfo = tiedWithPrev ? ` <span style="color: #aaa; font-size: 0.9em;">(Tiebreaker: Best card rank #${s.bestHandRank})</span>` : '';
                         
+                        // Get player's lineup
+                        const player = gameState.players[s.playerId];
+                        const lineupHTML = POSITIONS.map(pos => {
+                            const card = player.lineup[pos];
+                            if (!card) return '';
+                            const penalty = calculatePositionPenalty(card, pos);
+                            return `<span style="font-size: 0.85em; margin: 2px; display: inline-block;">${card.name} (${card.ovr}${penalty > 0 ? ' -' + penalty : ''})</span>`;
+                        }).filter(Boolean).join(' • ');
+                        
                         return `
                             <div style="padding: 15px; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: 1.1em;">
-                                <strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR${tieInfo}
+                                <div><strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR${tieInfo}</div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.9em;">
+                                    ${lineupHTML}
+                                </div>
                             </div>
                         `;
                     }).join('')}
