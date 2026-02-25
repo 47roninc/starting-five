@@ -2456,12 +2456,22 @@
                             }
                             
                             // Check if player has 5 locked in (game should end)
-                            const lockedCount = Object.values(newLineup).filter(rank => rank).length; // Count truthy values
+                            // Need to count both lineup cards AND captain
+                            const allValues = Object.values(newLineup);
+                            const lineupCount = allValues.filter(rank => rank).length;
+                            const hasCaptain = currentSyncedState.captains && currentSyncedState.captains[playerId] ? 1 : 0;
+                            const lockedCount = lineupCount + hasCaptain;
+                            
                             console.log('ONLINE LOCK-IN - Game End Check:', {
                                 playerId,
+                                position,
+                                cardRank: card.rank,
+                                lineupCount,
+                                hasCaptain,
                                 lockedCount,
                                 newLineup,
-                                allValues: Object.values(newLineup),
+                                allValues,
+                                captainData: currentSyncedState.captains?.[playerId],
                                 shouldEndGame: lockedCount >= 5
                             });
                             
