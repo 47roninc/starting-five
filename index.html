@@ -2129,6 +2129,23 @@
                 const slot = document.createElement('div');
                 slot.className = 'position-slot';
                 
+                // DEBUG: Log everything for online mode
+                if (onlineGame.enabled && gameState.phase === 'playing') {
+                    console.log('renderLineup check:', {
+                        renderingPlayerId: player.id,
+                        playerName: player.name,
+                        isAI: player.isAI,
+                        myGamePlayerId: onlineGame.gamePlayerId,
+                        currentPlayerIndex: gameState.currentPlayerIndex,
+                        phase: gameState.phase,
+                        hasAsked: gameState.hasAsked,
+                        waitingForBurn: gameState.waitingForBurn,
+                        selectedCard: gameState.selectedCard?.name,
+                        position: pos,
+                        slotOccupied: !!player.lineup[pos]
+                    });
+                }
+                
                 // Make slots clickable during captain selection or when locking in cards (NOT for AI players)
                 const isCurrentPlayer = !player.isAI && (
                     gameState.phase === 'captainSelection' ||
@@ -2147,10 +2164,21 @@
                     if (gameState.phase === 'captainSelection' && player.captainHidden) {
                         // Captain already placed, don't make slots clickable
                     } else if (canPlaceCardAtPosition(cardToPlace, pos)) {
+                        if (onlineGame.enabled && gameState.phase === 'playing') {
+                            console.log('MAKING SLOT CLICKABLE:', {
+                                position: pos,
+                                isCurrentPlayer,
+                                canLockIn,
+                                cardToPlace: cardToPlace?.name
+                            });
+                        }
                         slot.style.cursor = 'pointer';
                         slot.style.borderColor = 'rgba(255, 215, 0, 0.8)';
                         slot.style.borderStyle = 'solid';
-                        slot.onclick = () => placeCardInPosition(player.id, pos);
+                        slot.onclick = () => {
+                            if (onlineGame.enabled) console.log('SLOT CLICKED:', {playerId: player.id, position: pos});
+                            placeCardInPosition(player.id, pos);
+                        };
                         
                         // Show if there would be a penalty
                         const penalty = calculatePositionPenalty(cardToPlace, pos);
@@ -2215,6 +2243,17 @@
         }
 
         function placeCardInPosition(playerId, position) {
+            if (onlineGame.enabled) {
+                console.log('placeCardInPosition called:', {
+                    playerId,
+                    position,
+                    phase: gameState.phase,
+                    selectedCard: gameState.selectedCard?.name,
+                    currentPlayerIndex: gameState.currentPlayerIndex,
+                    myGamePlayerId: onlineGame.gamePlayerId
+                });
+            }
+            
             const player = gameState.players[playerId];
             
             if (gameState.phase === 'captainSelection' && player.captain && !player.captainHidden) {
@@ -3505,7 +3544,11 @@
                     }
                 } else {
                     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-                    instructionText = `${currentPlayer.name}'s turn - Ask for a position or select a card and click a position slot to lock it in`;
+                    if (!gameState.hasAsked) {
+                        instructionText = `${currentPlayer.name}'s turn - Ask for a position`;
+                    } else {
+                        instructionText = `${currentPlayer.name}, select a card from your hand and click a position slot to lock it in, or click "End Turn"`;
+                    }
                 }
             }
             
