@@ -2335,6 +2335,12 @@
                         if (playerId === onlineGame.gamePlayerId) {
                             playSound('lock-in');
                             const currentSyncedState = onlineGame.syncedState;
+                            
+                            // Ensure lineups exists
+                            if (!currentSyncedState.lineups) {
+                                currentSyncedState.lineups = {};
+                            }
+                            
                             const playerHand = currentSyncedState.hands[playerId] || [];
                             const playerLineup = currentSyncedState.lineups[playerId] || {};
                             
