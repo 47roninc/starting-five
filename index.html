@@ -3584,58 +3584,114 @@
         }
         
         function returnToRoom() {
+            if (!database || !onlineGame.roomCode) return;
+            
             // Close modal
             closeModal();
             
-            // Reset game state but keep room connection
             const roomCode = onlineGame.roomCode;
             const gamePlayerId = onlineGame.gamePlayerId;
-            const isHost = onlineGame.isHost;
             const playerName = onlineGame.playerName;
             
-            // Reset game state
-            gameState = {
-                phase: 'captainSelection',
-                currentPlayerIndex: 0,
-                players: [],
-                deck: [],
-                burnPile: [],
-                viewMode: 'online',
-                currentView: gamePlayerId,
-                selectedCard: null,
-                selectedCardPlayer: undefined,
-                hasAsked: false,
-                targetPlayer: null,
-                positionAsked: null,
-                waitingForBurn: null,
-                playerNeedingAction: null,
-                newlyAcquiredCard: null,
-                winnerPlayerId: null,
-                menuState: {
-                    humanPlayers: 2,
-                    aiPlayers: 0
-                }
-            };
+            // Mark this player as "returned" in Firebase
+            // Clear the game state completely and rebuild the lobby
+            const gameRef = database.ref(`rooms/${roomCode}/gameState`);
             
-            // Hide game screen, show lobby
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('setupScreen').style.display = 'block';
-            document.getElementById('modeSelection').style.display = 'none';
-            document.getElementById('playerSelection').style.display = 'none';
-            document.getElementById('onlineRoom').style.display = 'block';
+            // First, remove this player from the old players list
+            database.ref(`rooms/${roomCode}/players/${gamePlayerId}`).remove();
             
-            // Show appropriate lobby view
-            if (isHost) {
-                document.getElementById('createRoomView').style.display = 'block';
-                document.getElementById('joinRoomView').style.display = 'none';
-                document.getElementById('roomCodeDisplay').textContent = roomCode;
-            } else {
-                document.getElementById('createRoomView').style.display = 'none';
-                document.getElementById('joinRoomView').style.display = 'block';
-                document.getElementById('joinedRoomCode').textContent = roomCode;
-            }
-            
-            showMessage('Returned to room. Waiting for players...');
+            // Clear the entire game state to start fresh
+            gameRef.remove().then(() => {
+                // Re-add this player as a new lobby member
+                const playersRef = database.ref(`rooms/${roomCode}/players`);
+                
+                // Check if anyone else is in the room
+                playersRef.once('value').then((snapshot) => {
+                    const players = snapshot.val() || {};
+                    const playerCount = Object.keys(players).length;
+                    
+                    // If no one else is in the room, this player becomes the host
+                    const isNewHost = playerCount === 0;
+                    
+                    // Add this player back to the lobby
+                    const newPlayerData = {
+                        name: playerName,
+                        isReady: false,
+                        joinedAt: Date.now()
+                    };
+                    
+                    // Use push to get a new player ID or reuse if first
+                    if (isNewHost) {
+                        // First player back becomes host with ID 0
+                        playersRef.child('0').set(newPlayerData);
+                        onlineGame.gamePlayerId = 0;
+                        onlineGame.isHost = true;
+                    } else {
+                        // Add as a new player
+                        const newPlayerRef = playersRef.push();
+                        newPlayerRef.set(newPlayerData);
+                        const newPlayerId = Object.keys(players).length;
+                        onlineGame.gamePlayerId = newPlayerId;
+                        onlineGame.isHost = false;
+                    }
+                    
+                    // Reset local game state
+                    gameState = {
+                        phase: 'captainSelection',
+                        currentPlayerIndex: 0,
+                        players: [],
+                        deck: [],
+                        burnPile: [],
+                        viewMode: 'online',
+                        currentView: onlineGame.gamePlayerId,
+                        selectedCard: null,
+                        selectedCardPlayer: undefined,
+                        hasAsked: false,
+                        targetPlayer: null,
+                        positionAsked: null,
+                        waitingForBurn: null,
+                        playerNeedingAction: null,
+                        newlyAcquiredCard: null,
+                        winnerPlayerId: null,
+                        menuState: {
+                            humanPlayers: 2,
+                            aiPlayers: 0
+                        }
+                    };
+                    
+                    // Hide game screen, show lobby
+                    document.getElementById('gameScreen').style.display = 'none';
+                    document.getElementById('setupScreen').style.display = 'block';
+                    document.getElementById('modeSelection').style.display = 'none';
+                    document.getElementById('playerSelection').style.display = 'none';
+                    document.getElementById('onlineRoom').style.display = 'block';
+                    
+                    // Show appropriate lobby view
+                    if (isNewHost) {
+                        document.getElementById('createRoomView').style.display = 'block';
+                        document.getElementById('joinRoomView').style.display = 'none';
+                        document.getElementById('roomCodeDisplay').textContent = roomCode;
+                        renderLobby('createRoomView');
+                        showMessage(`You are now the host. Waiting for other players to return...`);
+                    } else {
+                        document.getElementById('createRoomView').style.display = 'none';
+                        document.getElementById('joinRoomView').style.display = 'block';
+                        document.getElementById('joinedRoomCode').textContent = roomCode;
+                        renderLobby('joinRoomView');
+                        showMessage('Returned to room. Waiting for players...');
+                    }
+                    
+                    // Listen for lobby updates
+                    playersRef.on('value', (snapshot) => {
+                        const players = snapshot.val() || {};
+                        if (onlineGame.isHost) {
+                            renderLobby('createRoomView');
+                        } else {
+                            renderLobby('joinRoomView');
+                        }
+                    });
+                });
+            });
         }
 
         function showMessage(text) {
