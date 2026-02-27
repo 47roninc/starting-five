@@ -1759,6 +1759,7 @@
                 
                 let teamBonus = 0;
                 let eraBonus = 0;
+                let goatBonus = 0;
                 
                 if (lockedCards.length > 0) {
                     const teamCounts = {};
@@ -1785,6 +1786,16 @@
                         else if (count === 4) eraBonus += 4;
                         else if (count >= 5) eraBonus += 8;
                     });
+                    
+                    // GOAT bonus
+                    lockedCards.forEach(card => {
+                        if (card && card.goat) {
+                            const has90Plus = lockedCards.some(lc => lc !== card && lc.ovr >= 90);
+                            if (!has90Plus) {
+                                goatBonus = 4;
+                            }
+                        }
+                    });
                 }
                 
                 html += `
@@ -1792,6 +1803,7 @@
                         <h3 style="color: #ffd700; margin-bottom: 10px;">${player.name}</h3>
                         <div style="font-size: 1.2em; margin-bottom: 10px;">
                             <strong>Team OVR:</strong> ${teamOVR}
+                            ${goatBonus > 0 ? `<span style="color: #00ff00; margin-left: 10px;">🐐 GOAT Bonus: +${goatBonus}</span>` : ''}
                             ${teamBonus > 0 ? `<span style="color: #ffd700; margin-left: 10px;">🤝 Team Bonus: +${teamBonus}</span>` : ''}
                             ${eraBonus > 0 ? `<span style="color: #90EE90; margin-left: 10px;">📅 Era Bonus: +${eraBonus}</span>` : ''}
                         </div>
@@ -3603,28 +3615,25 @@
             
             returnedPlayersRef.once('value').then((snapshot) => {
                 const returnedPlayers = snapshot.val() || {};
-                const existingPlayerIds = Object.keys(returnedPlayers);
+                const existingCount = Object.keys(returnedPlayers).length;
                 
-                // Check if this player is already in the returned list
-                let myReturnedId = null;
-                for (const id in returnedPlayers) {
-                    if (returnedPlayers[id].name === playerName) {
-                        myReturnedId = id;
-                        break;
-                    }
+                // If this is the FIRST person returning, clear the entire returnedPlayers list
+                // This ensures only people who click "Return to Room" are counted
+                if (existingCount === 0) {
+                    console.log('First person returning - starting fresh lobby');
+                    // Clear old game data too
+                    roomRef.child('players').remove();
+                    roomRef.child('gameState').remove();
                 }
                 
-                // If not already in list, add them
-                if (myReturnedId === null) {
-                    // Assign next ID
-                    myReturnedId = existingPlayerIds.length.toString();
-                    returnedPlayersRef.child(myReturnedId).set({
-                        name: playerName,
-                        joinedAt: Date.now()
-                    });
-                }
+                // Add this player (they always get the next sequential ID)
+                const myReturnedId = existingCount.toString();
+                returnedPlayersRef.child(myReturnedId).set({
+                    name: playerName,
+                    joinedAt: Date.now()
+                });
                 
-                // Determine if host (ID 0 = host)
+                // Determine if host (ID 0 = host, i.e. first person to return)
                 const isHost = myReturnedId === '0';
                 onlineGame.isHost = isHost;
                 onlineGame.gamePlayerId = parseInt(myReturnedId);
