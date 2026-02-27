@@ -3608,6 +3608,15 @@
                         player.lineup[chosenPos] = bestCard;
                         player.captainHidden = true; // Mark as placed
                         updateDisplay();
+                        
+                        // Check if all captains are placed
+                        const allPlaced = gameState.players.every(p => 
+                            p.captain && Object.values(p.lineup).some(card => card === p.captain)
+                        );
+                        
+                        if (allPlaced) {
+                            revealCaptains();
+                        }
                     }
                 }, 1500); // 1.5 second delay before placing
             }, 1500); // 1.5 second delay before selecting
