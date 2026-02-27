@@ -3592,71 +3592,42 @@
             
             const roomCode = onlineGame.roomCode;
             const playerName = onlineGame.playerName;
-            const gameRef = database.ref(`rooms/${roomCode}`);
+            const roomRef = database.ref(`rooms/${roomCode}`);
             
-            // CRITICAL: Remove ALL listeners to prevent ghost data
-            gameRef.off();
+            // Remove ALL listeners first to prevent ghost updates
+            roomRef.off();
             
-            // Check if we need to reset the entire room
-            gameRef.child('resetFlag').once('value').then((snapshot) => {
-                const resetFlag = snapshot.val();
-                const now = Date.now();
-                
-                // If no reset flag or it's old (>5 seconds), this player initiates the reset
-                if (!resetFlag || (now - resetFlag) > 5000) {
-                    console.log('Initiating room reset...');
-                    
-                    // Set reset flag to prevent race conditions
-                    gameRef.child('resetFlag').set(now);
-                    
-                    // Clear EVERYTHING in the room
-                    gameRef.child('gameState').remove();
-                    gameRef.child('players').remove();
-                    
-                    // Wait a moment for cleanup
-                    setTimeout(() => {
-                        addSelfToLobby(roomCode, playerName, true);
-                    }, 500);
-                } else {
-                    console.log('Joining already-reset room...');
-                    // Room was recently reset, just join
-                    setTimeout(() => {
-                        addSelfToLobby(roomCode, playerName, false);
-                    }, 1000);
-                }
-            });
-        }
-        
-        function addSelfToLobby(roomCode, playerName, isInitiator) {
-            const playersRef = database.ref(`rooms/${roomCode}/players`);
+            // Strategy: Add a "returnedPlayers" list separate from the game
+            // This prevents conflicts with old game data
+            const returnedPlayersRef = roomRef.child('returnedPlayers');
             
-            // Check current players
-            playersRef.once('value').then((snapshot) => {
-                const players = snapshot.val() || {};
-                const existingPlayers = Object.keys(players);
+            returnedPlayersRef.once('value').then((snapshot) => {
+                const returnedPlayers = snapshot.val() || {};
+                const existingPlayerIds = Object.keys(returnedPlayers);
                 
-                // Determine if this player is the host (first one in)
-                const isNewHost = existingPlayers.length === 0;
-                
-                let newPlayerId;
-                if (isNewHost) {
-                    // First player becomes host with ID 0
-                    newPlayerId = 0;
-                    onlineGame.isHost = true;
-                } else {
-                    // Find next available ID
-                    newPlayerId = existingPlayers.length;
-                    onlineGame.isHost = false;
+                // Check if this player is already in the returned list
+                let myReturnedId = null;
+                for (const id in returnedPlayers) {
+                    if (returnedPlayers[id].name === playerName) {
+                        myReturnedId = id;
+                        break;
+                    }
                 }
                 
-                // Add this player to lobby
-                playersRef.child(newPlayerId.toString()).set({
-                    name: playerName,
-                    isReady: false,
-                    joinedAt: Date.now()
-                });
+                // If not already in list, add them
+                if (myReturnedId === null) {
+                    // Assign next ID
+                    myReturnedId = existingPlayerIds.length.toString();
+                    returnedPlayersRef.child(myReturnedId).set({
+                        name: playerName,
+                        joinedAt: Date.now()
+                    });
+                }
                 
-                onlineGame.gamePlayerId = newPlayerId;
+                // Determine if host (ID 0 = host)
+                const isHost = myReturnedId === '0';
+                onlineGame.isHost = isHost;
+                onlineGame.gamePlayerId = parseInt(myReturnedId);
                 
                 // Reset local game state
                 gameState = {
@@ -3666,7 +3637,7 @@
                     deck: [],
                     burnPile: [],
                     viewMode: 'online',
-                    currentView: newPlayerId,
+                    currentView: parseInt(myReturnedId),
                     selectedCard: null,
                     selectedCardPlayer: undefined,
                     hasAsked: false,
@@ -3689,28 +3660,113 @@
                 document.getElementById('playerSelection').style.display = 'none';
                 document.getElementById('onlineRoom').style.display = 'block';
                 
-                // Show appropriate lobby view
-                if (isNewHost) {
+                // Render lobby using returnedPlayers instead of players
+                if (isHost) {
                     document.getElementById('createRoomView').style.display = 'block';
                     document.getElementById('joinRoomView').style.display = 'none';
                     document.getElementById('roomCodeDisplay').textContent = roomCode;
-                    renderLobby('createRoomView');
+                    renderReturnedLobby('createRoomView', roomCode);
                     showMessage(`You are the host. Waiting for other players to return...`);
                 } else {
                     document.getElementById('createRoomView').style.display = 'none';
                     document.getElementById('joinRoomView').style.display = 'block';
                     document.getElementById('joinedRoomCode').textContent = roomCode;
-                    renderLobby('joinRoomView');
+                    renderReturnedLobby('joinRoomView', roomCode);
                     showMessage('Returned to room. Waiting for players...');
                 }
                 
-                // Listen for lobby updates
-                playersRef.on('value', (snapshot) => {
-                    if (onlineGame.isHost) {
-                        renderLobby('createRoomView');
+                // Listen for updates to returnedPlayers
+                returnedPlayersRef.on('value', (snapshot) => {
+                    if (isHost) {
+                        renderReturnedLobby('createRoomView', roomCode);
                     } else {
-                        renderLobby('joinRoomView');
+                        renderReturnedLobby('joinRoomView', roomCode);
                     }
+                });
+            });
+        }
+        
+        function renderReturnedLobby(viewType, roomCode) {
+            const returnedPlayersRef = database.ref(`rooms/${roomCode}/returnedPlayers`);
+            
+            returnedPlayersRef.once('value').then((snapshot) => {
+                const returnedPlayers = snapshot.val() || {};
+                const playerIds = Object.keys(returnedPlayers).sort();
+                
+                let lobbyHTML = '<div style="margin-top: 20px;"><h3>Players in Lobby:</h3>';
+                playerIds.forEach((id, index) => {
+                    const player = returnedPlayers[id];
+                    const isYou = parseInt(id) === onlineGame.gamePlayerId;
+                    const isHost = id === '0';
+                    
+                    lobbyHTML += `
+                        <div style="padding: 10px; margin: 5px 0; background: ${isYou ? 'rgba(255,165,0,0.2)' : 'rgba(255,255,255,0.1)'}; 
+                                    border: ${isYou ? '2px solid #ffa500' : '1px solid rgba(255,255,255,0.2)'}; 
+                                    border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: ${isYou ? '#ffa500' : 'white'}; font-weight: ${isYou ? 'bold' : 'normal'};">
+                                ${player.name} ${isHost ? '(Host)' : ''} ${isYou ? '(You)' : ''}
+                            </span>
+                        </div>
+                    `;
+                });
+                lobbyHTML += '</div>';
+                
+                // Add start button for host
+                if (onlineGame.isHost && playerIds.length >= 2) {
+                    lobbyHTML += `
+                        <button onclick="startGameFromReturned()" style="width: 100%; padding: 15px; margin-top: 20px; 
+                                background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
+                                border: none; border-radius: 8px; color: white; cursor: pointer; 
+                                font-size: 1.3em; font-weight: bold;">
+                            🎮 Start Game (${playerIds.length} players)
+                        </button>
+                    `;
+                } else if (onlineGame.isHost) {
+                    lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00;">Waiting for at least 2 players...</p>`;
+                }
+                
+                const containerDiv = document.getElementById(viewType === 'createRoomView' ? 'lobbyPlayers' : 'joinedLobbyPlayers');
+                if (containerDiv) {
+                    containerDiv.innerHTML = lobbyHTML;
+                }
+            });
+        }
+        
+        function startGameFromReturned() {
+            const roomCode = onlineGame.roomCode;
+            const returnedPlayersRef = database.ref(`rooms/${roomCode}/returnedPlayers`);
+            
+            returnedPlayersRef.once('value').then((snapshot) => {
+                const returnedPlayers = snapshot.val() || {};
+                const playerIds = Object.keys(returnedPlayers).sort();
+                
+                if (playerIds.length < 2) {
+                    showMessage('Need at least 2 players!');
+                    return;
+                }
+                
+                // Clear old game data and set up new game
+                const roomRef = database.ref(`rooms/${roomCode}`);
+                
+                // Clear old players and gameState
+                roomRef.child('players').remove();
+                roomRef.child('gameState').remove();
+                
+                // Copy returnedPlayers to players
+                const playersData = {};
+                playerIds.forEach((id, index) => {
+                    playersData[index] = {
+                        name: returnedPlayers[id].name,
+                        isReady: true
+                    };
+                });
+                
+                roomRef.child('players').set(playersData).then(() => {
+                    // Clear returnedPlayers list
+                    returnedPlayersRef.remove();
+                    
+                    // Start the game (existing logic will handle it)
+                    startOnlineGame();
                 });
             });
         }
