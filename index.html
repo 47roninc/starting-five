@@ -3669,28 +3669,24 @@
                 document.getElementById('playerSelection').style.display = 'none';
                 document.getElementById('onlineRoom').style.display = 'block';
                 
-                // Render lobby using returnedPlayers instead of players
+                // Show the roomLobby (shared lobby view)
+                document.getElementById('createTab').style.display = 'none';
+                document.getElementById('joinTab').style.display = 'none';
+                document.getElementById('roomLobby').style.display = 'block';
+                document.getElementById('displayRoomCode').textContent = roomCode;
+                
+                // Render the lobby
+                renderReturnedLobby('returnedLobby', roomCode);
+                
                 if (isHost) {
-                    document.getElementById('createRoomView').style.display = 'block';
-                    document.getElementById('joinRoomView').style.display = 'none';
-                    document.getElementById('roomCodeDisplay').textContent = roomCode;
-                    renderReturnedLobby('createRoomView', roomCode);
                     showMessage(`You are the host. Waiting for other players to return...`);
                 } else {
-                    document.getElementById('createRoomView').style.display = 'none';
-                    document.getElementById('joinRoomView').style.display = 'block';
-                    document.getElementById('joinedRoomCode').textContent = roomCode;
-                    renderReturnedLobby('joinRoomView', roomCode);
                     showMessage('Returned to room. Waiting for players...');
                 }
                 
                 // Listen for updates to returnedPlayers
                 returnedPlayersRef.on('value', (snapshot) => {
-                    if (isHost) {
-                        renderReturnedLobby('createRoomView', roomCode);
-                    } else {
-                        renderReturnedLobby('joinRoomView', roomCode);
-                    }
+                    renderReturnedLobby('returnedLobby', roomCode);
                 });
             });
         }
@@ -3700,9 +3696,11 @@
             
             returnedPlayersRef.once('value').then((snapshot) => {
                 const returnedPlayers = snapshot.val() || {};
-                const playerIds = Object.keys(returnedPlayers).sort();
+                const playerIds = Object.keys(returnedPlayers).sort((a, b) => parseInt(a) - parseInt(b));
                 
-                let lobbyHTML = '<div style="margin-top: 20px;"><h3>Players in Lobby:</h3>';
+                let lobbyHTML = '<h3 style="margin-top: 30px; font-size: 1.5em;">Players in Lobby:</h3>';
+                lobbyHTML += '<div style="margin: 25px 0; font-size: 1.2em;">';
+                
                 playerIds.forEach((id, index) => {
                     const player = returnedPlayers[id];
                     const isYou = parseInt(id) === onlineGame.gamePlayerId;
@@ -3723,21 +3721,29 @@
                 // Add start button for host
                 if (onlineGame.isHost && playerIds.length >= 2) {
                     lobbyHTML += `
-                        <button onclick="startGameFromReturned()" style="width: 100%; padding: 15px; margin-top: 20px; 
+                        <button onclick="startGameFromReturned()" style="width: 100%; max-width: 400px; padding: 15px; margin: 15px auto; display: block;
                                 background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
                                 border: none; border-radius: 8px; color: white; cursor: pointer; 
-                                font-size: 1.3em; font-weight: bold;">
+                                font-size: 1.3em; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                             🎮 Start Game (${playerIds.length} players)
                         </button>
                     `;
                 } else if (onlineGame.isHost) {
-                    lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00;">Waiting for at least 2 players...</p>`;
+                    lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00; text-align: center;">Waiting for at least 2 players...</p>`;
+                } else {
+                    lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00; text-align: center;">Waiting for host to start the game...</p>`;
                 }
                 
-                const containerDiv = document.getElementById(viewType === 'createRoomView' ? 'lobbyPlayers' : 'joinedLobbyPlayers');
+                // Use the correct container
+                const containerDiv = document.getElementById('lobbyPlayers');
                 if (containerDiv) {
                     containerDiv.innerHTML = lobbyHTML;
+                } else {
+                    console.error('lobbyPlayers container not found!');
                 }
+                
+                // Show the lobby
+                document.getElementById('roomLobby').style.display = 'block';
             });
         }
         
