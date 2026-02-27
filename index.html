@@ -3575,9 +3575,67 @@
                         `;
                     }).join('')}
                 </div>
+                ${onlineGame.enabled && onlineGame.roomCode ? 
+                    `<button onclick="returnToRoom()" style="width: 100%; padding: 15px; font-size: 1.2em; margin-top: 10px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;">🔄 Return to Room</button>` 
+                    : ''}
                 <button onclick="location.reload()" style="width: 100%; padding: 15px; font-size: 1.2em; margin-top: 10px;">🎮 New Game</button>
             `;
             showModal('🏆 Final Results');
+        }
+        
+        function returnToRoom() {
+            // Close modal
+            closeModal();
+            
+            // Reset game state but keep room connection
+            const roomCode = onlineGame.roomCode;
+            const gamePlayerId = onlineGame.gamePlayerId;
+            const isHost = onlineGame.isHost;
+            const playerName = onlineGame.playerName;
+            
+            // Reset game state
+            gameState = {
+                phase: 'captainSelection',
+                currentPlayerIndex: 0,
+                players: [],
+                deck: [],
+                burnPile: [],
+                viewMode: 'online',
+                currentView: gamePlayerId,
+                selectedCard: null,
+                selectedCardPlayer: undefined,
+                hasAsked: false,
+                targetPlayer: null,
+                positionAsked: null,
+                waitingForBurn: null,
+                playerNeedingAction: null,
+                newlyAcquiredCard: null,
+                winnerPlayerId: null,
+                menuState: {
+                    humanPlayers: 2,
+                    aiPlayers: 0
+                }
+            };
+            
+            // Hide game screen, show lobby
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('setupScreen').style.display = 'block';
+            document.getElementById('modeSelection').style.display = 'none';
+            document.getElementById('playerSelection').style.display = 'none';
+            document.getElementById('onlineRoom').style.display = 'block';
+            
+            // Show appropriate lobby view
+            if (isHost) {
+                document.getElementById('createRoomView').style.display = 'block';
+                document.getElementById('joinRoomView').style.display = 'none';
+                document.getElementById('roomCodeDisplay').textContent = roomCode;
+            } else {
+                document.getElementById('createRoomView').style.display = 'none';
+                document.getElementById('joinRoomView').style.display = 'block';
+                document.getElementById('joinedRoomCode').textContent = roomCode;
+            }
+            
+            showMessage('Returned to room. Waiting for players...');
         }
 
         function showMessage(text) {
