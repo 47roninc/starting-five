@@ -3669,9 +3669,8 @@
                 document.getElementById('playerSelection').style.display = 'none';
                 document.getElementById('onlineRoom').style.display = 'block';
                 
-                // Show the roomLobby (shared lobby view)
-                document.getElementById('createTab').style.display = 'none';
-                document.getElementById('joinTab').style.display = 'none';
+                // Hide room creation, show roomLobby
+                document.getElementById('roomCreation').style.display = 'none';
                 document.getElementById('roomLobby').style.display = 'block';
                 document.getElementById('displayRoomCode').textContent = roomCode;
                 
