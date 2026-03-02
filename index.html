@@ -3687,6 +3687,21 @@
                 returnedPlayersRef.on('value', (snapshot) => {
                     renderReturnedLobby('returnedLobby', roomCode);
                 });
+                
+                // Listen for game start
+                roomRef.child('gameStarted').on('value', (snapshot) => {
+                    if (snapshot.val() === true) {
+                        // Game has started, join it
+                        console.log('Game started, joining...');
+                        // Set onlineGame.playerId to match Firebase ID
+                        onlineGame.playerId = onlineGame.gamePlayerId.toString();
+                        // Remove listeners
+                        returnedPlayersRef.off();
+                        roomRef.child('gameStarted').off();
+                        // Start the game
+                        startOnlineGame();
+                    }
+                });
             });
         }
         
@@ -3703,29 +3718,23 @@
                 playerIds.forEach((id, index) => {
                     const player = returnedPlayers[id];
                     const isYou = parseInt(id) === onlineGame.gamePlayerId;
-                    const isHost = id === '0';
                     
                     lobbyHTML += `
                         <div style="padding: 10px; margin: 5px 0; background: ${isYou ? 'rgba(255,165,0,0.2)' : 'rgba(255,255,255,0.1)'}; 
                                     border: ${isYou ? '2px solid #ffa500' : '1px solid rgba(255,255,255,0.2)'}; 
-                                    border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                                    border-radius: 5px; text-align: center;">
                             <span style="color: ${isYou ? '#ffa500' : 'white'}; font-weight: ${isYou ? 'bold' : 'normal'};">
-                                ${player.name} ${isHost ? '(Host)' : ''} ${isYou ? '(You)' : ''}
+                                ${player.name}
                             </span>
                         </div>
                     `;
                 });
                 lobbyHTML += '</div>';
                 
-                // Add start button for host
+                // Add start button for host ONLY
                 if (onlineGame.isHost && playerIds.length >= 2) {
                     lobbyHTML += `
-                        <button onclick="startGameFromReturned()" style="width: 100%; max-width: 400px; padding: 15px; margin: 15px auto; display: block;
-                                background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
-                                border: none; border-radius: 8px; color: white; cursor: pointer; 
-                                font-size: 1.3em; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                            🎮 Start Game (${playerIds.length} players)
-                        </button>
+                        <button onclick="startGameFromReturned()" style="margin: 15px; padding: 15px 40px; font-size: 1.3em; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Start Game</button>
                     `;
                 } else if (onlineGame.isHost) {
                     lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00; text-align: center;">Waiting for at least 2 players...</p>`;
@@ -3741,6 +3750,12 @@
                     console.error('lobbyPlayers container not found!');
                 }
                 
+                // Hide the original start button (we're using our own)
+                const originalStartBtn = document.getElementById('startOnlineGame');
+                if (originalStartBtn) {
+                    originalStartBtn.style.display = 'none';
+                }
+                
                 // Show the lobby
                 document.getElementById('roomLobby').style.display = 'block';
             });
@@ -3752,34 +3767,40 @@
             
             returnedPlayersRef.once('value').then((snapshot) => {
                 const returnedPlayers = snapshot.val() || {};
-                const playerIds = Object.keys(returnedPlayers).sort();
+                const playerIds = Object.keys(returnedPlayers).sort((a, b) => parseInt(a) - parseInt(b));
                 
                 if (playerIds.length < 2) {
                     showMessage('Need at least 2 players!');
                     return;
                 }
                 
-                // Clear old game data and set up new game
+                // Clear old game data
                 const roomRef = database.ref(`rooms/${roomCode}`);
-                
-                // Clear old players and gameState
-                roomRef.child('players').remove();
                 roomRef.child('gameState').remove();
+                roomRef.child('gameStarted').remove();
                 
-                // Copy returnedPlayers to players
+                // Copy returnedPlayers to players with matching IDs
+                // This ensures onlineGame.gamePlayerId matches the player ID in Firebase
                 const playersData = {};
-                playerIds.forEach((id, index) => {
-                    playersData[index] = {
+                playerIds.forEach((id) => {
+                    playersData[id] = {
                         name: returnedPlayers[id].name,
                         isReady: true
                     };
                 });
                 
+                // Set players list
                 roomRef.child('players').set(playersData).then(() => {
+                    // Set onlineGame.playerId to match the Firebase ID
+                    onlineGame.playerId = onlineGame.gamePlayerId.toString();
+                    
                     // Clear returnedPlayers list
                     returnedPlayersRef.remove();
                     
-                    // Start the game (existing logic will handle it)
+                    // Mark game as started (this will trigger other players)
+                    roomRef.child('gameStarted').set(true);
+                    
+                    // Start the game for this player
                     startOnlineGame();
                 });
             });
