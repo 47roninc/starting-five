@@ -693,7 +693,32 @@
             </div>
 
             <div class="controls">
-                <div id="controlsContent"></div>
+                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                    <div id="controlsContent" style="flex: 1;"></div>
+                    <div style="min-width: 350px; display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Turn Timer (Circular) -->
+                        <div id="turnTimerDisplay" style="display: none; align-items: center; justify-content: center;">
+                            <svg width="80" height="80" style="transform: rotate(-90deg);">
+                                <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="6"/>
+                                <circle id="timerCircle" cx="40" cy="40" r="35" fill="none" stroke="#ffd700" stroke-width="6" 
+                                        stroke-dasharray="220" stroke-dashoffset="0" 
+                                        style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"/>
+                                <text id="timerText" x="40" y="40" text-anchor="middle" dominant-baseline="middle" 
+                                      fill="#ffd700" font-size="24" font-weight="bold" transform="rotate(90 40 40)">60</text>
+                            </svg>
+                        </div>
+                        <!-- Activity Log -->
+                        <div style="background: rgba(255,255,255,0.05); border: 2px solid rgba(255,215,0,0.3); border-radius: 10px; padding: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0; font-size: 1.1em;">Activity Log</h4>
+                                <button onclick="clearActivityLog()" style="padding: 5px 10px; background: #666; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 0.8em;">Clear</button>
+                            </div>
+                            <div id="activityLogContent" style="height: 180px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column-reverse;">
+                                <div style="text-align: center; color: #888; padding: 20px;">No activity yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="players-container" id="playersContainer"></div>
@@ -751,6 +776,17 @@
             lastMessage: null, // Track last message shown
             syncedState: null // Store latest Firebase state
         };
+        
+        // Turn timer state
+        let turnTimer = {
+            interval: null,
+            timeLeft: 0,
+            maxTime: 60,
+            isActive: false
+        };
+        
+        // Activity log for this player (private messages)
+        let activityLog = [];
 
         function createRoom() {
             if (!database) {
@@ -778,12 +814,16 @@
                 players: {
                     [onlineGame.playerId]: {
                         name: playerName,
-                        ready: false
+                        ready: false,
+                        online: true
                     }
                 },
                 gameStarted: false,
                 createdAt: Date.now()
             });
+            
+            // Set up presence detection
+            setupPresenceTracking(roomCode, onlineGame.playerId);
             
             document.getElementById('roomCreation').style.display = 'none';
             document.getElementById('roomLobby').style.display = 'block';
@@ -882,8 +922,12 @@
                 // Add player to room
                 database.ref(`rooms/${roomCode}/players/${onlineGame.playerId}`).set({
                     name: playerName,
-                    ready: false
+                    ready: false,
+                    online: true
                 });
+                
+                // Set up presence detection
+                setupPresenceTracking(roomCode, onlineGame.playerId);
                 
                 document.getElementById('roomCreation').style.display = 'none';
                 document.getElementById('roomLobby').style.display = 'block';
@@ -1043,6 +1087,29 @@
                 
                 syncGameStateFromFirebase(syncedState);
             });
+            
+            // Monitor for player disconnections during game
+            database.ref(`rooms/${onlineGame.roomCode}/players`).on('value', (snapshot) => {
+                const players = snapshot.val();
+                if (!players) return;
+                
+                // Check if any game player has disconnected
+                const playerIds = Object.keys(players);
+                const disconnectedPlayers = [];
+                
+                gameState.players.forEach((player, index) => {
+                    const firebaseId = onlineGame.playerMapping[index];
+                    if (firebaseId && !players[firebaseId]) {
+                        disconnectedPlayers.push(player.name);
+                    }
+                });
+                
+                if (disconnectedPlayers.length > 0) {
+                    disconnectedPlayers.forEach(name => {
+                        addActivityLog(`${name} disconnected`, 'system');
+                    });
+                }
+            });
         }
         
         function shuffleArray(array) {
@@ -1080,7 +1147,16 @@
                             if (parseInt(playerIndex) === onlineGame.gamePlayerId) {
                                 const newCards = handRanks.filter(rank => !oldHandRanks.includes(rank));
                                 if (newCards.length === 1) {
-                                    gameState.newlyAcquiredCard = CARDS.find(c => c.rank === newCards[0]);
+                                    const receivedCard = CARDS.find(c => c.rank === newCards[0]);
+                                    gameState.newlyAcquiredCard = receivedCard;
+                                    
+                                    // Check if we're waiting to burn (means someone gave us this card)
+                                    if (syncedState.waitingForBurn === onlineGame.gamePlayerId) {
+                                        // Find who gave us the card (the player who locked in)
+                                        const giverIndex = (onlineGame.gamePlayerId + 1) % gameState.players.length;
+                                        const giver = gameState.players[giverIndex];
+                                        addActivityLog(`${giver.name} gave you ${receivedCard.name}`, 'private');
+                                    }
                                 }
                             }
                             
@@ -1135,20 +1211,12 @@
                 // Update game phase
                 const prevPhase = gameState.phase;
                 if (syncedState.phase) {
-                    console.log('FIREBASE SYNC - Phase update:', {
-                        prevPhase,
-                        newPhase: syncedState.phase,
-                        willTriggerEndGame: prevPhase !== 'final' && syncedState.phase === 'final'
-                    });
-                    
                     gameState.phase = syncedState.phase;
                     
                     // If phase changed to 'final', trigger endGame to do autofill and show results
                     if (prevPhase !== 'final' && syncedState.phase === 'final') {
-                        console.log('TRIGGERING ENDGAME from Firebase sync!');
                         // Call endGame but skip the Firebase sync part since it's already synced
                         setTimeout(() => {
-                            console.log('Starting autofill...');
                             // Fill empty positions with best available cards from hand
                             gameState.players.forEach(player => {
                                 POSITIONS.forEach(pos => {
@@ -1182,28 +1250,23 @@
                                             if (bestCard) {
                                                 player.lineup[pos] = bestCard;
                                                 player.hand = player.hand.filter(c => c !== bestCard);
-                                                console.log(`Autofilled ${player.name} ${pos} with ${bestCard.name}`);
                                             } else {
                                                 // No eligible cards, use benchwarmer
                                                 player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
-                                                console.log(`Autofilled ${player.name} ${pos} with Benchwarmer`);
                                             }
                                         } else {
                                             // No eligible cards, use benchwarmer
                                             player.lineup[pos] = { name: "Benchwarmer", ovr: 70, positions: [pos], primary: "N/A", era: "0", rank: 999 };
-                                            console.log(`Autofilled ${player.name} ${pos} with Benchwarmer`);
                                         }
                                     }
                                 });
                             });
 
-                            console.log('Autofill complete. Updating display...');
-                            // Force update display to show autofilled cards
+                            // Update display to show autofilled cards
                             updateDisplay();
                             
                             // Wait a bit for render, then show results
                             setTimeout(() => {
-                                console.log('Showing final results...');
                                 showFinalResults();
                             }, 500);
                         }, 300);
@@ -2120,6 +2183,57 @@
 
             updateControls();
             updatePhaseText();
+            updateTurnTimer(); // Update timer based on current game state
+        }
+        
+        function updateTurnTimer() {
+            // Stop timer during final phase
+            if (gameState.phase === 'final') {
+                stopTurnTimer();
+                return;
+            }
+            
+            // Captain selection: 20 second timer
+            if (gameState.phase === 'captainSelection') {
+                // Only show timer if it's YOUR turn (in online mode) or in local mode
+                const isYourTurn = !onlineGame.enabled || 
+                                  (onlineGame.gamePlayerId !== undefined);
+                
+                if (!isYourTurn) {
+                    stopTurnTimer();
+                    return;
+                }
+                
+                // 20 seconds to place captain
+                if (!turnTimer.isActive || turnTimer.maxTime !== 20) {
+                    startTurnTimer(20);
+                }
+                return;
+            }
+            
+            // Determine who should have the timer
+            let activePlayerId = gameState.currentPlayerIndex;
+            let timerDuration = 60; // Default: regular turn
+            
+            // If someone needs to burn, they get the timer (20 seconds)
+            if (gameState.waitingForBurn !== null) {
+                activePlayerId = gameState.waitingForBurn;
+                timerDuration = 20;
+            }
+            
+            // Only show timer if it's YOUR turn (in online mode) or in local mode
+            const isYourTurn = !onlineGame.enabled || 
+                              (onlineGame.gamePlayerId !== undefined && activePlayerId === onlineGame.gamePlayerId);
+            
+            if (!isYourTurn) {
+                stopTurnTimer();
+                return;
+            }
+            
+            // Restart timer if duration changed or timer not running
+            if (!turnTimer.isActive || turnTimer.maxTime !== timerDuration) {
+                startTurnTimer(timerDuration);
+            }
         }
 
         function renderPlayerView(player, showHand, container) {
@@ -2243,23 +2357,6 @@
                 const slot = document.createElement('div');
                 slot.className = 'position-slot';
                 
-                // DEBUG: Log everything for online mode
-                if (onlineGame.enabled && gameState.phase === 'playing') {
-                    console.log('renderLineup check:', {
-                        renderingPlayerId: player.id,
-                        playerName: player.name,
-                        isAI: player.isAI,
-                        myGamePlayerId: onlineGame.gamePlayerId,
-                        currentPlayerIndex: gameState.currentPlayerIndex,
-                        phase: gameState.phase,
-                        hasAsked: gameState.hasAsked,
-                        waitingForBurn: gameState.waitingForBurn,
-                        selectedCard: gameState.selectedCard?.name,
-                        position: pos,
-                        slotOccupied: !!player.lineup[pos]
-                    });
-                }
-                
                 // Make slots clickable during captain selection or when locking in cards (NOT for AI players)
                 const isCurrentPlayer = !player.isAI && (
                     gameState.phase === 'captainSelection' ||
@@ -2278,19 +2375,10 @@
                     if (gameState.phase === 'captainSelection' && player.captainHidden) {
                         // Captain already placed, don't make slots clickable
                     } else if (canPlaceCardAtPosition(cardToPlace, pos)) {
-                        if (onlineGame.enabled && gameState.phase === 'playing') {
-                            console.log('MAKING SLOT CLICKABLE:', {
-                                position: pos,
-                                isCurrentPlayer,
-                                canLockIn,
-                                cardToPlace: cardToPlace?.name
-                            });
-                        }
                         slot.style.cursor = 'pointer';
                         slot.style.borderColor = 'rgba(255, 215, 0, 0.8)';
                         slot.style.borderStyle = 'solid';
                         slot.onclick = () => {
-                            if (onlineGame.enabled) console.log('SLOT CLICKED:', {playerId: player.id, position: pos});
                             placeCardInPosition(player.id, pos);
                         };
                         
@@ -2357,17 +2445,6 @@
         }
 
         function placeCardInPosition(playerId, position) {
-            if (onlineGame.enabled) {
-                console.log('placeCardInPosition called:', {
-                    playerId,
-                    position,
-                    phase: gameState.phase,
-                    selectedCard: gameState.selectedCard?.name,
-                    currentPlayerIndex: gameState.currentPlayerIndex,
-                    myGamePlayerId: onlineGame.gamePlayerId
-                });
-            }
-            
             const player = gameState.players[playerId];
             
             if (gameState.phase === 'captainSelection' && player.captain && !player.captainHidden) {
@@ -2389,6 +2466,10 @@
                     playSound('lock-in');
                     player.lineup[position] = player.captain;
                     player.captainHidden = true; // Mark as placed to remove highlights
+                    
+                    // Add to activity log with colored OVR
+                    const cardColor = getCardColor(player.captain.ovr);
+                    addActivityLog(`You placed <span style="color: ${cardColor};">${player.captain.name} (${player.captain.ovr})</span> as captain at ${position}`, 'captain');
                     
                     // Sync to Firebase in online mode
                     if (onlineGame.enabled) {
@@ -2493,6 +2574,15 @@
                                 updates[`hands/${nextPlayerIndex}`] = finalNextHand;
                                 updates.deckIndex = newDeckIndex;
                                 updates.waitingForBurn = nextPlayerIndex;
+                                
+                                // Find the card object from rank
+                                const givenCard = CARDS.find(c => c.rank === highestCardRank);
+                                const nextPlayer = gameState.players[nextPlayerIndex];
+                                
+                                // Add to activity log with colored OVR
+                                const lockedColor = getCardColor(card.ovr);
+                                const givenColor = givenCard ? getCardColor(givenCard.ovr) : '#ccc';
+                                addActivityLog(`You locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> and gave <span style="color: ${givenColor};">${givenCard ? givenCard.name + ' (' + givenCard.ovr + ')' : 'a card'}</span> to ${nextPlayer.name}`, 'action');
                             } else {
                                 // No cards to give, just draw
                                 let newDeckIndex = currentSyncedState.deckIndex || 0;
@@ -2502,6 +2592,10 @@
                                     updates[`hands/${playerId}`] = newPlayerHand;
                                     updates.deckIndex = newDeckIndex;
                                 }
+                                
+                                // Add activity log for lock-in with no cards to give
+                                const lockedColor = getCardColor(card.ovr);
+                                addActivityLog(`You locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span>`, 'action');
                             }
                             
                             // Check if player has 5 locked in (game should end)
@@ -2511,26 +2605,11 @@
                             const hasCaptain = currentSyncedState.captains && currentSyncedState.captains[playerId] ? 1 : 0;
                             const lockedCount = lineupCount + hasCaptain;
                             
-                            console.log('ONLINE LOCK-IN - Game End Check:', {
-                                playerId,
-                                position,
-                                cardRank: card.rank,
-                                lineupCount,
-                                hasCaptain,
-                                lockedCount,
-                                newLineup,
-                                allValues,
-                                captainData: currentSyncedState.captains?.[playerId],
-                                shouldEndGame: lockedCount >= 5
-                            });
-                            
                             if (lockedCount >= 5) {
-                                console.log('ENDING GAME! Setting phase to final in Firebase');
                                 updates.phase = 'final';
                                 updates.waitingForBurn = null;
                             }
                             
-                            console.log('Syncing to Firebase:', updates);
                             syncToFirebase(updates);
                         }
                         
@@ -2569,7 +2648,16 @@
                             player.hand.push(drawnCard);
                         }
                         
-                        showMessage(`${player.name} locked in ${card.name}! ${nextPlayer.name} received a card and must burn one.`);
+                        // Generic message (hide card details)
+                        showMessage(`${player.name} locked in a card! ${nextPlayer.name} received a card and must burn one.`);
+                        
+                        // Add to activity log with card name only for the current player
+                        if (!player.isAI) {
+                            const lockedColor = getCardColor(card.ovr);
+                            const givenColor = getCardColor(highestCard.ovr);
+                            addActivityLog(`You locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> and gave <span style="color: ${givenColor};">${highestCard.name} (${highestCard.ovr})</span> to ${nextPlayer.name}`, 'action');
+                        }
+                        
                         gameState.waitingForBurn = nextPlayerIndex;
                         gameState.playerNeedingAction = nextPlayerIndex;
                         
@@ -2761,6 +2849,10 @@
                     }
                     
                     syncToFirebase(updates);
+                    
+                    // Add to activity log (public) with colored OVR
+                    const cardColor = getCardColor(card.ovr);
+                    addActivityLog(`You burned <span style="color: ${cardColor};">${card.name} (${card.ovr})</span>`, 'burn');
                 }
                 
                 // Clear selection and update display to remove highlights
@@ -2780,6 +2872,10 @@
             gameState.selectedCard = null;
             gameState.selectedCardPlayer = undefined;
             gameState.playerNeedingAction = null;
+            
+            // Add to activity log with colored OVR
+            const cardColor = getCardColor(card.ovr);
+            addActivityLog(`${player.name} burned <span style="color: ${cardColor};">${card.name} (${card.ovr})</span>`, 'burn');
             
             // Sync to Firebase
             if (onlineGame.enabled) {
@@ -3206,6 +3302,7 @@
             gameState.currentView = playerIndex;
             gameState.selectedCard = null; // Clear selection when switching views
             updateDisplay();
+            updateActivityLogDisplay(); // Refresh log for new view
         }
 
         function askForPosition() {
@@ -3305,6 +3402,10 @@
                         updates.hasAsked = true;
                         updates.waitingForBurn = gameState.currentPlayerIndex;
                         syncToFirebase(updates);
+                        
+                        // Add private log with colored OVR
+                        const cardColor = getCardColor(cardToGive.ovr);
+                        addActivityLog(`You received <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> from ${targetPlayer.name}`, 'private');
                     }
                     
                     closeModal();
@@ -3317,7 +3418,13 @@
                     currentPlayer.hand.push(cardToGive);
                     
                     gameState.newlyAcquiredCard = cardToGive;
+                    
+                    // Show generic message (hide card name)
                     showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
+                    
+                    // Add to activity log with colored OVR
+                    const cardColor = getCardColor(cardToGive.ovr);
+                    addActivityLog(`You received <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> from ${targetPlayer.name}`, 'private');
                     
                     let drawnCard = null;
                     if (gameState.deck.length > 0) {
@@ -3405,6 +3512,10 @@
             updateDisplay();
             
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            
+            // Add turn change to activity log
+            addActivityLog(`${currentPlayer.name}'s turn started`, 'system');
+            
             if (!onlineGame.enabled) {
                 showMessage(`${prevPlayer.name} ended their turn. It's now ${currentPlayer.name}'s turn!`);
             }
@@ -3515,7 +3626,6 @@
         }
         
         function showFinalResults() {
-            console.log('showFinalResults called');
             // Calculate final scores
             const scores = gameState.players.map(player => {
                 const ovr = calculateTeamOVR(player);
@@ -3620,7 +3730,6 @@
                 // If this is the FIRST person returning, clear the entire returnedPlayers list
                 // This ensures only people who click "Return to Room" are counted
                 if (existingCount === 0) {
-                    console.log('First person returning - starting fresh lobby');
                     // Clear old game data too
                     roomRef.child('players').remove();
                     roomRef.child('gameState').remove();
@@ -3630,8 +3739,13 @@
                 const myReturnedId = existingCount.toString();
                 returnedPlayersRef.child(myReturnedId).set({
                     name: playerName,
-                    joinedAt: Date.now()
+                    joinedAt: Date.now(),
+                    online: true
                 });
+                
+                // Set up presence tracking for returned lobby
+                const myReturnedRef = returnedPlayersRef.child(myReturnedId);
+                myReturnedRef.onDisconnect().remove();
                 
                 // Determine if host (ID 0 = host, i.e. first person to return)
                 const isHost = myReturnedId === '0';
@@ -3692,7 +3806,6 @@
                 roomRef.child('gameStarted').on('value', (snapshot) => {
                     if (snapshot.val() === true) {
                         // Game has started, join it
-                        console.log('Game started, joining...');
                         // Set onlineGame.playerId to match Firebase ID
                         onlineGame.playerId = onlineGame.gamePlayerId.toString();
                         // Remove listeners
@@ -4008,6 +4121,249 @@
 
         function closeModal() {
             document.getElementById('modal').classList.remove('show');
+        }
+        
+        // ==================== TURN TIMER FUNCTIONS ====================
+        
+        function startTurnTimer(seconds) {
+            stopTurnTimer(); // Clear any existing timer
+            
+            turnTimer.maxTime = seconds;
+            turnTimer.timeLeft = seconds;
+            turnTimer.isActive = true;
+            
+            const timerDisplay = document.getElementById('turnTimerDisplay');
+            const timerText = document.getElementById('timerText');
+            
+            if (timerDisplay) {
+                timerDisplay.style.display = 'block';
+            }
+            
+            updateTimerDisplay();
+            
+            turnTimer.interval = setInterval(() => {
+                turnTimer.timeLeft--;
+                updateTimerDisplay();
+                
+                if (turnTimer.timeLeft <= 0) {
+                    handleTimerExpired();
+                }
+            }, 1000);
+        }
+        
+        function stopTurnTimer() {
+            if (turnTimer.interval) {
+                clearInterval(turnTimer.interval);
+                turnTimer.interval = null;
+            }
+            turnTimer.isActive = false;
+            
+            const timerDisplay = document.getElementById('turnTimerDisplay');
+            if (timerDisplay) {
+                timerDisplay.style.display = 'none';
+            }
+        }
+        
+        function updateTimerDisplay() {
+            const timerText = document.getElementById('timerText');
+            const timerCircle = document.getElementById('timerCircle');
+            if (!timerText || !timerCircle) return;
+            
+            timerText.textContent = turnTimer.timeLeft;
+            
+            // Calculate circle depletion (circumference = 2 * PI * r = 2 * 3.14159 * 35 ≈ 220)
+            const circumference = 220;
+            const progress = turnTimer.timeLeft / turnTimer.maxTime;
+            const offset = circumference * (1 - progress);
+            timerCircle.style.strokeDashoffset = offset;
+            
+            // Change color based on time remaining
+            if (turnTimer.timeLeft <= 10) {
+                timerCircle.style.stroke = '#ff4444'; // Red for urgency
+                timerText.setAttribute('fill', '#ff4444');
+            } else if (turnTimer.timeLeft <= 20) {
+                timerCircle.style.stroke = '#ffaa00'; // Orange for warning
+                timerText.setAttribute('fill', '#ffaa00');
+            } else {
+                timerCircle.style.stroke = '#ffd700'; // Gold for normal
+                timerText.setAttribute('fill', '#ffd700');
+            }
+        }
+        
+        function handleTimerExpired() {
+            stopTurnTimer();
+            
+            // Handle captain selection timeout
+            if (gameState.phase === 'captainSelection') {
+                addActivityLog('⏰ Time expired! Auto-placing captain...', 'system');
+                
+                // Auto-place captain at best position
+                const currentPlayer = onlineGame.enabled && onlineGame.gamePlayerId !== undefined 
+                    ? gameState.players[onlineGame.gamePlayerId]
+                    : gameState.players[gameState.currentPlayerIndex];
+                
+                if (currentPlayer && currentPlayer.captain && !currentPlayer.captainHidden) {
+                    // Find best position for captain (one they can play)
+                    const validPositions = POSITIONS.filter(pos => 
+                        currentPlayer.captain.positions.includes(pos) && !currentPlayer.lineup[pos]
+                    );
+                    
+                    if (validPositions.length > 0) {
+                        // Place at first valid position
+                        setTimeout(() => {
+                            placeCardInPosition(currentPlayer.id, validPositions[0]);
+                        }, 500);
+                    }
+                }
+                return;
+            }
+            
+            addActivityLog('⏰ Time expired! AI taking over this turn...', 'system');
+            
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            
+            if (gameState.waitingForBurn !== null) {
+                // Auto-burn first card in hand
+                const player = gameState.players[gameState.waitingForBurn];
+                if (player && player.hand.length > 0) {
+                    const cardToBurn = player.hand[0];
+                    setTimeout(() => {
+                        burnCard(gameState.waitingForBurn, cardToBurn);
+                    }, 1000);
+                }
+            } else {
+                // Let AI take over the entire turn
+                setTimeout(() => {
+                    aiTakeTurn(currentPlayer);
+                }, 1000);
+            }
+        }
+        
+        // ==================== ACTIVITY LOG FUNCTIONS ====================
+        
+        function addActivityLog(message, type = 'action', forPlayerId = null) {
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // If forPlayerId not specified, use current player
+            if (forPlayerId === null) {
+                if (onlineGame.enabled && onlineGame.gamePlayerId !== undefined) {
+                    forPlayerId = onlineGame.gamePlayerId;
+                } else if (gameState.currentView !== null) {
+                    forPlayerId = gameState.currentView;
+                } else {
+                    forPlayerId = gameState.currentPlayerIndex;
+                }
+            }
+            
+            activityLog.push({ message, type, timestamp, playerId: forPlayerId }); // Add to end (bottom)
+            
+            // Keep only last 50 messages
+            if (activityLog.length > 50) {
+                activityLog.shift(); // Remove from beginning
+            }
+            
+            updateActivityLogDisplay();
+        }
+        
+        function updateActivityLogDisplay() {
+            const logContent = document.getElementById('activityLogContent');
+            if (!logContent) return;
+            
+            // In separate view mode, filter messages for current player
+            let filteredLog = activityLog;
+            if (gameState.viewMode === 'separate' && gameState.currentView !== null) {
+                // Show only messages for this specific player
+                filteredLog = activityLog.filter(log => {
+                    // System messages and public burns visible to all
+                    if (log.type === 'system') return true;
+                    if (log.type === 'burn' && !log.message.startsWith('You')) return true;
+                    
+                    // Private/action messages: only show if for this player
+                    return log.playerId === gameState.currentView;
+                });
+            }
+            
+            if (filteredLog.length === 0) {
+                logContent.innerHTML = '<div style="text-align: center; color: #888; padding: 20px; min-height: 180px; display: flex; align-items: center; justify-content: center;">No activity yet</div>';
+                return;
+            }
+            
+            let html = '';
+            filteredLog.forEach(log => {
+                let borderColor = '#ccc';
+                if (log.type === 'system') borderColor = '#ffaa00';
+                else if (log.type === 'private') borderColor = '#ff69b4';
+                else if (log.type === 'burn') borderColor = '#ff6666';
+                else if (log.type === 'captain') borderColor = '#ffd700';
+                
+                html += `
+                    <div style="padding: 5px; margin: 3px 0; border-left: 3px solid ${borderColor}; padding-left: 8px;">
+                        <div style="font-size: 0.75em; color: #888;">${log.timestamp}</div>
+                        <div style="color: #ccc;">${log.message}</div>
+                    </div>
+                `;
+            });
+            
+            logContent.innerHTML = html;
+            
+            // Auto-scroll to bottom (newest message)
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        function clearActivityLog() {
+            activityLog = [];
+            updateActivityLogDisplay();
+        }
+        
+        function getCardColor(ovr) {
+            if (ovr >= 92) return '#9B59B6'; // Amethyst
+            if (ovr >= 87) return '#E74C3C'; // Ruby
+            if (ovr >= 83) return '#2ECC71'; // Emerald
+            if (ovr >= 80) return '#3498DB'; // Diamond
+            if (ovr >= 78) return '#DAA520'; // Gold
+            if (ovr >= 76) return '#A9A9A9'; // Silver
+            if (ovr === 70) return '#696969'; // Benchwarmer
+            return '#CD7F32'; // Bronze
+        }
+        
+        // ==================== PRESENCE TRACKING ====================
+        
+        function setupPresenceTracking(roomCode, playerId) {
+            if (!database) return;
+            
+            const playerRef = database.ref(`rooms/${roomCode}/players/${playerId}`);
+            const playerOnlineRef = database.ref(`rooms/${roomCode}/players/${playerId}/online`);
+            
+            // Set up automatic disconnect handling
+            playerOnlineRef.onDisconnect().set(false);
+            
+            // Mark as online
+            playerOnlineRef.set(true);
+            
+            // Also mark entire player as removed on disconnect
+            playerRef.onDisconnect().remove();
+            
+            // Listen for player disconnections
+            database.ref(`rooms/${roomCode}/players`).on('value', (snapshot) => {
+                const players = snapshot.val();
+                if (!players) return;
+                
+                // Check if host left and reassign if needed
+                database.ref(`rooms/${roomCode}/host`).once('value').then((hostSnapshot) => {
+                    const currentHost = hostSnapshot.val();
+                    
+                    // If current host is gone, assign new host (first player in list)
+                    if (!players[currentHost]) {
+                        const newHostId = Object.keys(players)[0];
+                        database.ref(`rooms/${roomCode}/host`).set(newHostId);
+                        
+                        if (newHostId === playerId) {
+                            onlineGame.isHost = true;
+                            addActivityLog('You are now the host', 'system');
+                        }
+                    }
+                });
+            });
         }
     </script>
 
