@@ -696,25 +696,27 @@
                 <div style="display: flex; gap: 15px; align-items: flex-start;">
                     <div id="controlsContent" style="flex: 1;"></div>
                     <div style="min-width: 350px; display: flex; flex-direction: column; gap: 10px;">
-                        <!-- Turn Timer (Circular) -->
-                        <div id="turnTimerDisplay" style="display: none; align-items: center; justify-content: center;">
-                            <svg width="80" height="80" style="transform: rotate(-90deg);">
-                                <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="6"/>
-                                <circle id="timerCircle" cx="40" cy="40" r="35" fill="none" stroke="#ffd700" stroke-width="6" 
-                                        stroke-dasharray="220" stroke-dashoffset="0" 
-                                        style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"/>
-                                <text id="timerText" x="40" y="40" text-anchor="middle" dominant-baseline="middle" 
-                                      fill="#ffd700" font-size="24" font-weight="bold" transform="rotate(90 40 40)">60</text>
-                            </svg>
-                        </div>
-                        <!-- Activity Log -->
+                        <!-- Activity Log at Top -->
                         <div style="background: rgba(255,255,255,0.05); border: 2px solid rgba(255,215,0,0.3); border-radius: 10px; padding: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <h4 style="margin: 0; font-size: 1.1em;">Activity Log</h4>
                                 <button onclick="clearActivityLog()" style="padding: 5px 10px; background: #666; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 0.8em;">Clear</button>
                             </div>
-                            <div id="activityLogContent" style="height: 180px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column-reverse;">
-                                <div style="text-align: center; color: #888; padding: 20px;">No activity yet</div>
+                            <div id="activityLogContent" style="min-height: 60px; max-height: 60px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column-reverse;">
+                                <div style="text-align: center; color: #888; padding: 10px;">No activity yet</div>
+                            </div>
+                        </div>
+                        <!-- Turn Timer Below, Centered -->
+                        <div style="display: flex; justify-content: center;">
+                            <div id="turnTimerDisplay" style="display: none; align-items: center; justify-content: center;">
+                                <svg width="80" height="80" style="transform: rotate(-90deg);">
+                                    <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="6"/>
+                                    <circle id="timerCircle" cx="40" cy="40" r="35" fill="none" stroke="#ffd700" stroke-width="6" 
+                                            stroke-dasharray="220" stroke-dashoffset="0" 
+                                            style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"/>
+                                    <text id="timerText" x="40" y="40" text-anchor="middle" dominant-baseline="middle" 
+                                          fill="#ffd700" font-size="24" font-weight="bold" transform="rotate(90 40 40)">60</text>
+                                </svg>
                             </div>
                         </div>
                     </div>
@@ -2230,10 +2232,14 @@
                 return;
             }
             
-            // Restart timer if duration changed or timer not running
-            if (!turnTimer.isActive || turnTimer.maxTime !== timerDuration) {
-                startTurnTimer(timerDuration);
+            // Don't restart timer if already running and duration hasn't changed
+            // This prevents timer reset after burning (player continues their turn)
+            if (turnTimer.isActive && turnTimer.maxTime === timerDuration) {
+                return; // Keep existing timer running
             }
+            
+            // Start new timer if duration changed or timer not running
+            startTurnTimer(timerDuration);
         }
 
         function renderPlayerView(player, showHand, container) {
@@ -3824,49 +3830,47 @@
             returnedPlayersRef.once('value').then((snapshot) => {
                 const returnedPlayers = snapshot.val() || {};
                 const playerIds = Object.keys(returnedPlayers).sort((a, b) => parseInt(a) - parseInt(b));
+                const playerCount = playerIds.length;
                 
-                let lobbyHTML = '<h3 style="margin-top: 30px; font-size: 1.5em;">Players in Lobby:</h3>';
-                lobbyHTML += '<div style="margin: 25px 0; font-size: 1.2em;">';
+                const lobbyDiv = document.getElementById('lobbyPlayers');
+                if (!lobbyDiv) {
+                    console.error('lobbyPlayers container not found!');
+                    return;
+                }
                 
-                playerIds.forEach((id, index) => {
+                lobbyDiv.innerHTML = '';
+                
+                // Add player count header (exactly like original)
+                const countHeader = document.createElement('div');
+                countHeader.style.cssText = 'font-size: 1.3em; font-weight: bold; color: #ffd700; margin-bottom: 15px;';
+                countHeader.textContent = `Players: ${playerCount}/6`;
+                lobbyDiv.appendChild(countHeader);
+                
+                // Render each player (exactly like original)
+                playerIds.forEach((id) => {
                     const player = returnedPlayers[id];
                     const isYou = parseInt(id) === onlineGame.gamePlayerId;
                     
-                    lobbyHTML += `
-                        <div style="padding: 10px; margin: 5px 0; background: ${isYou ? 'rgba(255,165,0,0.2)' : 'rgba(255,255,255,0.1)'}; 
-                                    border: ${isYou ? '2px solid #ffa500' : '1px solid rgba(255,255,255,0.2)'}; 
-                                    border-radius: 5px; text-align: center;">
-                            <span style="color: ${isYou ? '#ffa500' : 'white'}; font-weight: ${isYou ? 'bold' : 'normal'};">
-                                ${player.name}
-                            </span>
-                        </div>
-                    `;
+                    const playerDiv = document.createElement('div');
+                    playerDiv.style.cssText = `display: flex; align-items: center; justify-content: center; padding: 10px; margin: 5px 0; background: ${isYou ? 'rgba(255,165,0,0.2)' : 'rgba(255,255,255,0.1)'}; border-radius: 5px; position: relative; ${isYou ? 'border: 2px solid #ffa500;' : ''}`;
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = player.name;
+                    nameSpan.style.cssText = isYou ? 'color: #ffa500; font-weight: bold;' : '';
+                    playerDiv.appendChild(nameSpan);
+                    
+                    lobbyDiv.appendChild(playerDiv);
                 });
-                lobbyHTML += '</div>';
                 
-                // Add start button for host ONLY
-                if (onlineGame.isHost && playerIds.length >= 2) {
-                    lobbyHTML += `
-                        <button onclick="startGameFromReturned()" style="margin: 15px; padding: 15px 40px; font-size: 1.3em; border-radius: 8px; background: #4CAF50; color: white; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Start Game</button>
-                    `;
-                } else if (onlineGame.isHost) {
-                    lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00; text-align: center;">Waiting for at least 2 players...</p>`;
-                } else {
-                    lobbyHTML += `<p style="margin-top: 20px; color: #ffaa00; text-align: center;">Waiting for host to start the game...</p>`;
-                }
-                
-                // Use the correct container
-                const containerDiv = document.getElementById('lobbyPlayers');
-                if (containerDiv) {
-                    containerDiv.innerHTML = lobbyHTML;
-                } else {
-                    console.error('lobbyPlayers container not found!');
-                }
-                
-                // Hide the original start button (we're using our own)
-                const originalStartBtn = document.getElementById('startOnlineGame');
-                if (originalStartBtn) {
-                    originalStartBtn.style.display = 'none';
+                // Show start button if host and at least 2 players (exactly like original)
+                const startBtn = document.getElementById('startOnlineGame');
+                if (startBtn) {
+                    if (onlineGame.isHost && playerCount >= 2) {
+                        startBtn.style.display = 'inline-block';
+                        startBtn.onclick = () => startGameFromReturned();
+                    } else {
+                        startBtn.style.display = 'none';
+                    }
                 }
                 
                 // Show the lobby
@@ -4284,12 +4288,15 @@
             }
             
             if (filteredLog.length === 0) {
-                logContent.innerHTML = '<div style="text-align: center; color: #888; padding: 20px; min-height: 180px; display: flex; align-items: center; justify-content: center;">No activity yet</div>';
+                logContent.innerHTML = '<div style="text-align: center; color: #888; padding: 10px; min-height: 60px; display: flex; align-items: center; justify-content: center;">No activity yet</div>';
                 return;
             }
             
+            // Show only last 2 messages
+            const recentLog = filteredLog.slice(-2);
+            
             let html = '';
-            filteredLog.forEach(log => {
+            recentLog.forEach(log => {
                 let borderColor = '#ccc';
                 if (log.type === 'system') borderColor = '#ffaa00';
                 else if (log.type === 'private') borderColor = '#ff69b4';
