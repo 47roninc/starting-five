@@ -694,29 +694,30 @@
 
             <div class="controls">
                 <div style="display: flex; gap: 15px; align-items: flex-start;">
-                    <div id="controlsContent" style="flex: 1;"></div>
-                    <div style="min-width: 350px; display: flex; flex-direction: column; gap: 10px;">
-                        <!-- Activity Log at Top -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                        <div id="controlsContent"></div>
+                        <!-- Turn Timer (moved here, next to controls) -->
+                        <div id="turnTimerDisplay" style="display: none; align-items: center; gap: 10px;">
+                            <svg width="60" height="60" style="transform: rotate(-90deg);">
+                                <circle cx="30" cy="30" r="25" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="5"/>
+                                <circle id="timerCircle" cx="30" cy="30" r="25" fill="none" stroke="#ffd700" stroke-width="5" 
+                                        stroke-dasharray="157" stroke-dashoffset="0" 
+                                        style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"/>
+                                <text id="timerText" x="30" y="30" text-anchor="middle" dominant-baseline="middle" 
+                                      fill="#ffd700" font-size="18" font-weight="bold" transform="rotate(90 30 30)">60</text>
+                            </svg>
+                            <span style="color: #aaa; font-size: 0.9em;">Time Remaining</span>
+                        </div>
+                    </div>
+                    <div style="min-width: 400px; display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Activity Log -->
                         <div style="background: rgba(255,255,255,0.05); border: 2px solid rgba(255,215,0,0.3); border-radius: 10px; padding: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <h4 style="margin: 0; font-size: 1.1em;">Activity Log</h4>
                                 <button onclick="clearActivityLog()" style="padding: 5px 10px; background: #666; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 0.8em;">Clear</button>
                             </div>
-                            <div id="activityLogContent" style="min-height: 60px; max-height: 60px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column-reverse;">
+                            <div id="activityLogContent" style="height: 210px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column;">
                                 <div style="text-align: center; color: #888; padding: 10px;">No activity yet</div>
-                            </div>
-                        </div>
-                        <!-- Turn Timer Below, Centered -->
-                        <div style="display: flex; justify-content: center;">
-                            <div id="turnTimerDisplay" style="display: none; align-items: center; justify-content: center;">
-                                <svg width="80" height="80" style="transform: rotate(-90deg);">
-                                    <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="6"/>
-                                    <circle id="timerCircle" cx="40" cy="40" r="35" fill="none" stroke="#ffd700" stroke-width="6" 
-                                            stroke-dasharray="220" stroke-dashoffset="0" 
-                                            style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"/>
-                                    <text id="timerText" x="40" y="40" text-anchor="middle" dominant-baseline="middle" 
-                                          fill="#ffd700" font-size="24" font-weight="bold" transform="rotate(90 40 40)">60</text>
-                                </svg>
                             </div>
                         </div>
                     </div>
@@ -776,7 +777,8 @@
             isHost: false,
             processingSync: false, // Prevent duplicate processing
             lastMessage: null, // Track last message shown
-            syncedState: null // Store latest Firebase state
+            syncedState: null, // Store latest Firebase state
+            activityFeedListenerAttached: false // Prevent duplicate activity feed listeners
         };
         
         // Turn timer state
@@ -1090,6 +1092,10 @@
                 syncGameStateFromFirebase(syncedState);
             });
             
+            // Reset local activity log and start listening for shared public activity
+            activityLog = [];
+            setupActivityFeedListener();
+            
             // Monitor for player disconnections during game
             database.ref(`rooms/${onlineGame.roomCode}/players`).on('value', (snapshot) => {
                 const players = snapshot.val();
@@ -1108,7 +1114,7 @@
                 
                 if (disconnectedPlayers.length > 0) {
                     disconnectedPlayers.forEach(name => {
-                        addActivityLog(`${name} disconnected`, 'system');
+                        addActivityLog({ type: 'system', alwaysText: `${name} disconnected` });
                     });
                 }
             });
@@ -1152,12 +1158,27 @@
                                     const receivedCard = CARDS.find(c => c.rank === newCards[0]);
                                     gameState.newlyAcquiredCard = receivedCard;
                                     
-                                    // Check if we're waiting to burn (means someone gave us this card)
+                                    // Check if we're waiting to burn (means someone gave us this card via lock-in)
                                     if (syncedState.waitingForBurn === onlineGame.gamePlayerId) {
                                         // Find who gave us the card (the player who locked in)
                                         const giverIndex = (onlineGame.gamePlayerId + 1) % gameState.players.length;
                                         const giver = gameState.players[giverIndex];
-                                        addActivityLog(`${giver.name} gave you ${receivedCard.name}`, 'private');
+                                        const c = getCardColor(receivedCard.ovr);
+                                        addActivityLog({ type: 'private', viewerTexts: { [onlineGame.gamePlayerId]: `You received <span style="color: ${c};">${receivedCard.name} (${receivedCard.ovr})</span> from ${giver.name}` } });
+                                    }
+                                }
+                                
+                                // Detect a card we lost (not via burning) - means we were asked and gave a card away
+                                const lostCards = oldHandRanks.filter(rank => !handRanks.includes(rank));
+                                if (lostCards.length === 1 && syncedState.waitingForBurn !== null &&
+                                    syncedState.waitingForBurn === syncedState.currentPlayerIndex &&
+                                    syncedState.waitingForBurn !== onlineGame.gamePlayerId) {
+                                    const givenCard = CARDS.find(c => c.rank === lostCards[0]);
+                                    const askerIndex = syncedState.currentPlayerIndex;
+                                    const asker = gameState.players[askerIndex];
+                                    if (givenCard && asker) {
+                                        const c = getCardColor(givenCard.ovr);
+                                        addActivityLog({ type: 'private', viewerTexts: { [onlineGame.gamePlayerId]: `You gave <span style="color: ${c};">${givenCard.name} (${givenCard.ovr})</span> to ${asker.name}` } });
                                     }
                                 }
                             }
@@ -2020,20 +2041,87 @@
             playSound('click');
             const modal = document.getElementById('modalBody');
             
+            // Build filter option lists
+            const positionOrder = ['PG', 'SG', 'SF', 'PF', 'C'];
+            const positions = positionOrder.filter(p => CARDS.some(c => c.positions.includes(p)));
+            const teams = [...new Set(CARDS.map(c => c.primary))].sort();
+            const eraNums = new Set();
+            CARDS.forEach(c => c.era.split(',').forEach(e => eraNums.add(e.trim())));
+            const eras = [...eraNums].sort((a, b) => parseInt(a) - parseInt(b));
+            
+            const optionStyle = 'style="background: #1a1a2e; color: white;"';
+            
+            let controlsHtml = `
+                <div style="position: sticky; top: 0; background: #1a1a2e; padding-bottom: 12px; z-index: 5;">
+                    <input type="text" id="cardIndexSearch" placeholder="Search players..." 
+                           oninput="filterCardIndex()"
+                           style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid rgba(255,215,0,0.4); background: rgba(255,255,255,0.08); color: white; font-size: 1em; box-sizing: border-box;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <select id="cardIndexPositionFilter" onchange="filterCardIndex()" style="flex: 1; min-width: 120px; padding: 8px; border-radius: 6px; border: 1px solid rgba(255,215,0,0.4); background: rgba(255,255,255,0.08); color: white;">
+                            <option value="" ${optionStyle}>All Positions</option>
+                            ${positions.map(p => `<option value="${p}" ${optionStyle}>${p}</option>`).join('')}
+                        </select>
+                        <select id="cardIndexTeamFilter" onchange="filterCardIndex()" style="flex: 1; min-width: 120px; padding: 8px; border-radius: 6px; border: 1px solid rgba(255,215,0,0.4); background: rgba(255,255,255,0.08); color: white;">
+                            <option value="" ${optionStyle}>All Teams</option>
+                            ${teams.map(t => `<option value="${t}" ${optionStyle}>${t}</option>`).join('')}
+                        </select>
+                        <select id="cardIndexEraFilter" onchange="filterCardIndex()" style="flex: 1; min-width: 120px; padding: 8px; border-radius: 6px; border: 1px solid rgba(255,215,0,0.4); background: rgba(255,255,255,0.08); color: white;">
+                            <option value="" ${optionStyle}>All Eras</option>
+                            ${eras.map(e => `<option value="${e}" ${optionStyle}>Era ${e}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div id="cardIndexResults"></div>
+            `;
+            
+            modal.innerHTML = `<div style="max-height: 500px; overflow-y: auto;">${controlsHtml}</div>`;
+            showModal('Card Index - All 253 Players');
+            
+            renderCardIndexResults(CARDS);
+        }
+        
+        function filterCardIndex() {
+            const search = document.getElementById('cardIndexSearch').value.trim().toLowerCase();
+            const posFilter = document.getElementById('cardIndexPositionFilter').value;
+            const teamFilter = document.getElementById('cardIndexTeamFilter').value;
+            const eraFilter = document.getElementById('cardIndexEraFilter').value;
+            
+            const filtered = CARDS.filter(card => {
+                if (search && !card.name.toLowerCase().includes(search)) return false;
+                if (posFilter && !card.positions.includes(posFilter)) return false;
+                if (teamFilter && card.primary !== teamFilter) return false;
+                if (eraFilter && !card.era.split(',').map(e => e.trim()).includes(eraFilter)) return false;
+                return true;
+            });
+            
+            renderCardIndexResults(filtered);
+        }
+        
+        function renderCardIndexResults(cardList) {
+            const resultsDiv = document.getElementById('cardIndexResults');
+            if (!resultsDiv) return;
+            
+            if (cardList.length === 0) {
+                resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">No players match your search/filters.</div>';
+                return;
+            }
+            
             // Group cards by OVR tier with new rarity names
             const tiers = {
-                'Amethyst (92+)': CARDS.filter(c => c.ovr >= 92),
-                'Ruby (87-91)': CARDS.filter(c => c.ovr >= 87 && c.ovr < 92),
-                'Emerald (83-86)': CARDS.filter(c => c.ovr >= 83 && c.ovr < 87),
-                'Diamond (80-82)': CARDS.filter(c => c.ovr >= 80 && c.ovr < 83),
-                'Gold (78-79)': CARDS.filter(c => c.ovr >= 78 && c.ovr < 80),
-                'Silver (76-77)': CARDS.filter(c => c.ovr >= 76 && c.ovr < 78),
-                'Bronze (75)': CARDS.filter(c => c.ovr === 75)
+                'Amethyst (92+)': cardList.filter(c => c.ovr >= 92),
+                'Ruby (87-91)': cardList.filter(c => c.ovr >= 87 && c.ovr < 92),
+                'Emerald (83-86)': cardList.filter(c => c.ovr >= 83 && c.ovr < 87),
+                'Diamond (80-82)': cardList.filter(c => c.ovr >= 80 && c.ovr < 83),
+                'Gold (78-79)': cardList.filter(c => c.ovr >= 78 && c.ovr < 80),
+                'Silver (76-77)': cardList.filter(c => c.ovr >= 76 && c.ovr < 78),
+                'Bronze (75)': cardList.filter(c => c.ovr === 75)
             };
             
-            let html = '<div style="max-height: 500px; overflow-y: auto;">';
+            let html = '';
             
             for (const [tierName, cards] of Object.entries(tiers)) {
+                if (cards.length === 0) continue;
+                
                 html += `<h3 style="margin-top: 20px; color: #ffd700;">${tierName} (${cards.length} cards)</h3>`;
                 html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">';
                 
@@ -2061,9 +2149,7 @@
                 html += '</div>';
             }
             
-            html += '</div>';
-            modal.innerHTML = html;
-            showModal('Card Index - All 253 Players');
+            resultsDiv.innerHTML = html;
         }
 
         function startGame() {
@@ -2482,7 +2568,7 @@
                     
                     // Add to activity log with colored OVR
                     const cardColor = getCardColor(player.captain.ovr);
-                    addActivityLog(`You placed <span style="color: ${cardColor};">${player.captain.name} (${player.captain.ovr})</span> as captain at ${position}`, 'captain');
+                    addActivityLog({ type: 'captain', viewerTexts: { [playerId]: `You placed <span style="color: ${cardColor};">${player.captain.name} (${player.captain.ovr})</span> as captain at ${position}` } });
                     
                     // Sync to Firebase in online mode
                     if (onlineGame.enabled) {
@@ -2595,7 +2681,8 @@
                                 // Add to activity log with colored OVR
                                 const lockedColor = getCardColor(card.ovr);
                                 const givenColor = givenCard ? getCardColor(givenCard.ovr) : '#ccc';
-                                addActivityLog(`You locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> and gave <span style="color: ${givenColor};">${givenCard ? givenCard.name + ' (' + givenCard.ovr + ')' : 'a card'}</span> to ${nextPlayer.name}`, 'action');
+                                addActivityLog({ actorId: playerId, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> at ${position}` });
+                                addActivityLog({ type: 'private', viewerTexts: { [playerId]: `You gave <span style="color: ${givenColor};">${givenCard ? givenCard.name + ' (' + givenCard.ovr + ')' : 'a card'}</span> to ${nextPlayer.name}` } });
                             } else {
                                 // No cards to give, just draw
                                 let newDeckIndex = currentSyncedState.deckIndex || 0;
@@ -2608,7 +2695,7 @@
                                 
                                 // Add activity log for lock-in with no cards to give
                                 const lockedColor = getCardColor(card.ovr);
-                                addActivityLog(`You locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span>`, 'action');
+                                addActivityLog({ actorId: playerId, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> at ${position}` });
                             }
                             
                             // Check if player has 5 locked in (game should end)
@@ -2638,6 +2725,10 @@
                     player.hand = player.hand.filter(c => c.rank !== card.rank);
                     gameState.selectedCard = null;
                     gameState.selectedCardPlayer = undefined;
+                    
+                    // Lock-in is always public knowledge (visible on the board)
+                    const lockedInColor = getCardColor(card.ovr);
+                    addActivityLog({ actorId: player.id, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedInColor};">${card.name} (${card.ovr})</span> at ${position}` });
 
                     // Give highest rank card (best card, lowest rank number) to player counterclockwise
                     let drawnCard = null;
@@ -2664,12 +2755,12 @@
                         // Generic message (hide card details)
                         showMessage(`${player.name} locked in a card! ${nextPlayer.name} received a card and must burn one.`);
                         
-                        // Add to activity log with card name only for the current player
-                        if (!player.isAI) {
-                            const lockedColor = getCardColor(card.ovr);
-                            const givenColor = getCardColor(highestCard.ovr);
-                            addActivityLog(`You locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> and gave <span style="color: ${givenColor};">${highestCard.name} (${highestCard.ovr})</span> to ${nextPlayer.name}`, 'action');
-                        }
+                        // Give/receive is private - only visible to the giver and the receiver
+                        const givenColor = getCardColor(highestCard.ovr);
+                        addActivityLog({ type: 'private', viewerTexts: {
+                            [player.id]: `You gave <span style="color: ${givenColor};">${highestCard.name} (${highestCard.ovr})</span> to ${nextPlayer.name}`,
+                            [nextPlayerIndex]: `You received <span style="color: ${givenColor};">${highestCard.name} (${highestCard.ovr})</span> from ${player.name}`
+                        } });
                         
                         gameState.waitingForBurn = nextPlayerIndex;
                         gameState.playerNeedingAction = nextPlayerIndex;
@@ -2865,7 +2956,7 @@
                     
                     // Add to activity log (public) with colored OVR
                     const cardColor = getCardColor(card.ovr);
-                    addActivityLog(`You burned <span style="color: ${cardColor};">${card.name} (${card.ovr})</span>`, 'burn');
+                    addActivityLog({ actorId: playerId, type: 'burn', publicText: `{ACTOR} burned <span style="color: ${cardColor};">${card.name} (${card.ovr})</span>` });
                 }
                 
                 // Clear selection and update display to remove highlights
@@ -2888,7 +2979,7 @@
             
             // Add to activity log with colored OVR
             const cardColor = getCardColor(card.ovr);
-            addActivityLog(`${player.name} burned <span style="color: ${cardColor};">${card.name} (${card.ovr})</span>`, 'burn');
+            addActivityLog({ actorId: playerId, type: 'burn', publicText: `{ACTOR} burned <span style="color: ${cardColor};">${card.name} (${card.ovr})</span>` });
             
             // Sync to Firebase
             if (onlineGame.enabled) {
@@ -3418,7 +3509,7 @@
                         
                         // Add private log with colored OVR
                         const cardColor = getCardColor(cardToGive.ovr);
-                        addActivityLog(`You received <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> from ${targetPlayer.name}`, 'private');
+                        addActivityLog({ type: 'private', viewerTexts: { [onlineGame.gamePlayerId]: `You received <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> from ${targetPlayer.name}` } });
                     }
                     
                     closeModal();
@@ -3435,9 +3526,12 @@
                     // Show generic message (hide card name)
                     showMessage(`${targetPlayer.name} gave ${currentPlayer.name} a card.`);
                     
-                    // Add to activity log with colored OVR
+                    // Add to activity log with colored OVR (private to both participants)
                     const cardColor = getCardColor(cardToGive.ovr);
-                    addActivityLog(`You received <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> from ${targetPlayer.name}`, 'private');
+                    addActivityLog({ type: 'private', viewerTexts: {
+                        [currentPlayer.id]: `You received <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> from ${targetPlayer.name}`,
+                        [targetPlayer.id]: `You gave <span style="color: ${cardColor};">${cardToGive.name} (${cardToGive.ovr})</span> to ${currentPlayer.name}`
+                    } });
                     
                     let drawnCard = null;
                     if (gameState.deck.length > 0) {
@@ -3526,8 +3620,8 @@
             
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
             
-            // Add turn change to activity log
-            addActivityLog(`${currentPlayer.name}'s turn started`, 'system');
+            // Add turn change to activity log (public - visible to everyone)
+            addActivityLog({ actorId: currentPlayer.id, type: 'system', publicText: `{ACTOR}'s turn started` });
             
             if (!onlineGame.enabled) {
                 showMessage(`${prevPlayer.name} ended their turn. It's now ${currentPlayer.name}'s turn!`);
@@ -3642,15 +3736,16 @@
             // Calculate final scores
             const scores = gameState.players.map(player => {
                 const ovr = calculateTeamOVR(player);
-                // Find best card in hand (lowest rank number = best card)
-                const bestHandCard = player.hand.length > 0 ? 
-                    Math.min(...player.hand.map(c => c.rank)) : 999;
+                // Find best card in hand (lowest rank number = best card) - used as "Sixth Man" tiebreaker
+                const bestHandCardObj = player.hand.length > 0 ? 
+                    player.hand.reduce((best, c) => c.rank < best.rank ? c : best) : null;
                 
                 return {
                     player: player.name,
                     ovr: ovr,
                     playerId: player.id,
-                    bestHandRank: bestHandCard
+                    bestHandRank: bestHandCardObj ? bestHandCardObj.rank : 999,
+                    bestHandCard: bestHandCardObj
                 };
             });
 
@@ -3690,7 +3785,7 @@
                         const tiedWithPrev = i > 0 && s.ovr === scores[i-1].ovr;
                         const tiedWithNext = i < scores.length - 1 && s.ovr === scores[i+1].ovr;
                         const isInTie = tiedWithPrev || tiedWithNext;
-                        const tieInfo = isInTie ? ` <span style="color: #aaa; font-size: 0.9em;">(Tiebreaker: Best card rank #${s.bestHandRank})</span>` : '';
+                        const tieInfo = isInTie ? ` <span style="color: #aaa; font-size: 0.9em;">(Sixth Man Tiebreaker: ${s.bestHandCard ? s.bestHandCard.name + ' (' + s.bestHandCard.ovr + ')' : 'None'})</span>` : '';
                         
                         // Get player's lineup
                         const player = gameState.players[s.playerId];
@@ -4147,7 +4242,7 @@
             const timerText = document.getElementById('timerText');
             
             if (timerDisplay) {
-                timerDisplay.style.display = 'block';
+                timerDisplay.style.display = 'flex';
             }
             
             updateTimerDisplay();
@@ -4182,8 +4277,8 @@
             
             timerText.textContent = turnTimer.timeLeft;
             
-            // Calculate circle depletion (circumference = 2 * PI * r = 2 * 3.14159 * 35 ≈ 220)
-            const circumference = 220;
+            // Calculate circle depletion (circumference = 2 * PI * r = 2 * 3.14159 * 25 ≈ 157)
+            const circumference = 157;
             const progress = turnTimer.timeLeft / turnTimer.maxTime;
             const offset = circumference * (1 - progress);
             timerCircle.style.strokeDashoffset = offset;
@@ -4206,12 +4301,14 @@
             
             // Handle captain selection timeout
             if (gameState.phase === 'captainSelection') {
-                addActivityLog('⏰ Time expired! Auto-placing captain...', 'system');
-                
                 // Auto-place captain at best position
                 const currentPlayer = onlineGame.enabled && onlineGame.gamePlayerId !== undefined 
                     ? gameState.players[onlineGame.gamePlayerId]
                     : gameState.players[gameState.currentPlayerIndex];
+                
+                if (currentPlayer) {
+                    addActivityLog({ type: 'system', viewerTexts: { [currentPlayer.id]: '⏰ Your time expired! Auto-placing captain...' } });
+                }
                 
                 if (currentPlayer && currentPlayer.captain && !currentPlayer.captainHidden) {
                     // Find best position for captain (one they can play)
@@ -4229,9 +4326,8 @@
                 return;
             }
             
-            addActivityLog('⏰ Time expired! AI taking over this turn...', 'system');
-            
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            addActivityLog({ actorId: currentPlayer.id, type: 'system', publicText: `{ACTOR}'s time expired \u2014 AI took over the turn` });
             
             if (gameState.waitingForBurn !== null) {
                 // Auto-burn first card in hand
@@ -4252,68 +4348,131 @@
         
         // ==================== ACTIVITY LOG FUNCTIONS ====================
         
-        function addActivityLog(message, type = 'action', forPlayerId = null) {
-            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            // If forPlayerId not specified, use current player
-            if (forPlayerId === null) {
-                if (onlineGame.enabled && onlineGame.gamePlayerId !== undefined) {
-                    forPlayerId = onlineGame.gamePlayerId;
-                } else if (gameState.currentView !== null) {
-                    forPlayerId = gameState.currentView;
-                } else {
-                    forPlayerId = gameState.currentPlayerIndex;
-                }
+        function resolveViewerId() {
+            if (onlineGame.enabled && onlineGame.gamePlayerId !== undefined) {
+                return onlineGame.gamePlayerId;
             }
-            
-            activityLog.push({ message, type, timestamp, playerId: forPlayerId }); // Add to end (bottom)
-            
-            // Keep only last 50 messages
+            if (gameState.currentView !== null && gameState.currentView !== undefined) {
+                return gameState.currentView;
+            }
+            if (gameState.currentPlayerIndex !== undefined) {
+                return gameState.currentPlayerIndex;
+            }
+            return null;
+        }
+        
+        function actorDisplayName(actorId, viewerId) {
+            if (actorId === null || actorId === undefined) return '';
+            if (actorId === viewerId) return 'You';
+            const p = gameState.players && gameState.players[actorId];
+            return p ? p.name : 'A player';
+        }
+        
+        function formatLogTimestamp() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function pushActivityLogEntry(entry) {
+            entry.timestamp = formatLogTimestamp();
+            activityLog.push(entry);
             if (activityLog.length > 50) {
-                activityLog.shift(); // Remove from beginning
+                activityLog.shift();
             }
-            
             updateActivityLogDisplay();
+        }
+        
+        // config: { actorId, type, publicText (with {ACTOR} placeholder), viewerTexts ({viewerId: text}), alwaysText }
+        // publicText -> visible to everyone (pushed to Firebase feed in online mode so all clients see it)
+        // viewerTexts -> fully private, local-only, only rendered for viewers whose id is a key
+        // alwaysText -> local-only, shown to any viewer regardless (for minor system notices)
+        function addActivityLog(config) {
+            if (onlineGame.enabled && onlineGame.roomCode) {
+                if (config.publicText) {
+                    database.ref(`rooms/${onlineGame.roomCode}/activityFeed`).push({
+                        actorId: (config.actorId === undefined || config.actorId === null) ? null : config.actorId,
+                        type: config.type || 'action',
+                        publicText: config.publicText,
+                        ts: Date.now()
+                    });
+                }
+                if (config.viewerTexts) {
+                    pushActivityLogEntry({ type: config.type || 'action', viewerTexts: config.viewerTexts });
+                }
+                if (config.alwaysText) {
+                    pushActivityLogEntry({ type: config.type || 'system', alwaysText: config.alwaysText });
+                }
+            } else {
+                pushActivityLogEntry({
+                    actorId: config.actorId,
+                    type: config.type || 'action',
+                    publicText: config.publicText,
+                    viewerTexts: config.viewerTexts,
+                    alwaysText: config.alwaysText
+                });
+            }
+        }
+        
+        function setupActivityFeedListener() {
+            if (!database || !onlineGame.roomCode) return;
+            if (onlineGame.activityFeedListenerAttached) return;
+            onlineGame.activityFeedListenerAttached = true;
+            
+            database.ref(`rooms/${onlineGame.roomCode}/activityFeed`).on('child_added', (snapshot) => {
+                const entry = snapshot.val();
+                if (!entry) return;
+                pushActivityLogEntry({
+                    actorId: entry.actorId,
+                    type: entry.type || 'action',
+                    publicText: entry.publicText
+                });
+            });
         }
         
         function updateActivityLogDisplay() {
             const logContent = document.getElementById('activityLogContent');
             if (!logContent) return;
             
-            // In separate view mode, filter messages for current player
-            let filteredLog = activityLog;
-            if (gameState.viewMode === 'separate' && gameState.currentView !== null) {
-                // Show only messages for this specific player
-                filteredLog = activityLog.filter(log => {
-                    // System messages and public burns visible to all
-                    if (log.type === 'system') return true;
-                    if (log.type === 'burn' && !log.message.startsWith('You')) return true;
-                    
-                    // Private/action messages: only show if for this player
-                    return log.playerId === gameState.currentView;
-                });
-            }
+            const viewerId = resolveViewerId();
             
-            if (filteredLog.length === 0) {
+            const rendered = [];
+            activityLog.forEach(log => {
+                let text = null;
+                
+                if (log.viewerTexts) {
+                    if (log.viewerTexts.hasOwnProperty(viewerId)) {
+                        text = log.viewerTexts[viewerId];
+                    } else {
+                        return; // not visible to this viewer
+                    }
+                } else if (log.alwaysText) {
+                    text = log.alwaysText;
+                } else if (log.publicText) {
+                    text = log.publicText.split('{ACTOR}').join(actorDisplayName(log.actorId, viewerId));
+                } else {
+                    return;
+                }
+                
+                rendered.push({ type: log.type, timestamp: log.timestamp, text });
+            });
+            
+            if (rendered.length === 0) {
                 logContent.innerHTML = '<div style="text-align: center; color: #888; padding: 10px; min-height: 60px; display: flex; align-items: center; justify-content: center;">No activity yet</div>';
                 return;
             }
             
-            // Show only last 2 messages
-            const recentLog = filteredLog.slice(-2);
-            
             let html = '';
-            recentLog.forEach(log => {
+            rendered.forEach(log => {
                 let borderColor = '#ccc';
                 if (log.type === 'system') borderColor = '#ffaa00';
                 else if (log.type === 'private') borderColor = '#ff69b4';
                 else if (log.type === 'burn') borderColor = '#ff6666';
                 else if (log.type === 'captain') borderColor = '#ffd700';
+                else if (log.type === 'lockin') borderColor = '#66ff99';
                 
                 html += `
                     <div style="padding: 5px; margin: 3px 0; border-left: 3px solid ${borderColor}; padding-left: 8px;">
                         <div style="font-size: 0.75em; color: #888;">${log.timestamp}</div>
-                        <div style="color: #ccc;">${log.message}</div>
+                        <div style="color: #ccc;">${log.text}</div>
                     </div>
                 `;
             });
@@ -4373,7 +4532,7 @@
                         
                         if (newHostId === playerId) {
                             onlineGame.isHost = true;
-                            addActivityLog('You are now the host', 'system');
+                            addActivityLog({ type: 'system', alwaysText: 'You are now the host' });
                         }
                     }
                 });
