@@ -591,10 +591,10 @@
                     <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3); min-width: 280px;">
                         <h3 style="margin: 0 0 20px 0; font-size: 1.3em; text-align: center;">Game Info</h3>
                         <button onclick="showInstructions()" style="width: 100%; padding: 15px 20px; margin: 10px 0; background: #32CD32; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold;">
-                            <span style="font-size: 1.3em;">📖</span> Instructions
+                            <span style="font-size: 1.3em;">📋</span> Instructions
                         </button>
                         <button onclick="showCardIndex()" style="width: 100%; padding: 15px 20px; margin: 10px 0; background: #4169E1; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold;">
-                            <span style="font-size: 1.3em;">📋</span> Card Index
+                            <span style="font-size: 1.3em;">📖</span> Card Index
                         </button>
                         <button onclick="showSettings()" style="width: 100%; padding: 15px 20px; margin: 10px 0; background: #FF6347; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold;">
                             <span style="font-size: 1.3em;">⚙️</span> Settings
@@ -682,20 +682,22 @@
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="showSettings()" style="padding: 10px 15px; background: #FF6347; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Settings">⚙️</button>
-                            <button onclick="showInstructions()" style="padding: 10px 15px; background: #32CD32; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Game Instructions">📖</button>
-                            <button onclick="showCardIndex()" style="padding: 10px 15px; background: #4169E1; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Card Index">📋</button>
+                            <button onclick="showInstructions()" style="padding: 10px 15px; background: #32CD32; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Game Instructions">📋</button>
+                            <button onclick="showCardIndex()" style="padding: 10px 15px; background: #4169E1; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Card Index">📖</button>
                             <button onclick="showLineupReview()" style="padding: 10px 15px; background: #9370DB; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 1.2em; flex-shrink: 0;" title="Review All Lineups">👥</button>
                         </div>
                         <span id="instructionText" style="font-size: 1.3em; color: #ffd700; font-weight: bold; display: block;"></span>
                         <div id="controlsContent"></div>
-                        <!-- Turn Timer (unified widget design) -->
+                    </div>
+                    <div style="display: flex; align-items: flex-start; padding-top: 6px;">
+                        <!-- Turn Timer (unified widget design, positioned between controls and activity log) -->
                         <div id="turnTimerDisplay" style="display: none; flex-direction: column; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,215,0,0.3); border-radius: 10px; padding: 15px; width: fit-content;">
                             <svg width="110" height="110" style="transform: rotate(-90deg);">
                                 <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="8"/>
                                 <circle id="timerCircle" cx="55" cy="55" r="46" fill="none" stroke="#ffd700" stroke-width="8" 
                                         stroke-dasharray="289" stroke-dashoffset="0" stroke-linecap="round"
                                         style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"/>
-                                <text id="timerText" x="55" y="55" text-anchor="middle" dominant-baseline="middle" 
+                                <text id="timerText" x="55" y="55" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" dy="0.05em"
                                       fill="#ffd700" font-size="30" font-weight="bold" transform="rotate(90 55 55)">60</text>
                             </svg>
                             <span style="color: #ffd700; font-size: 1em; font-weight: bold; letter-spacing: 0.5px;">TIME REMAINING</span>
@@ -708,7 +710,7 @@
                                 <h4 style="margin: 0; font-size: 1.1em;">Activity Log</h4>
                                 <button onclick="clearActivityLog()" style="padding: 5px 10px; background: #666; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 0.8em;">Clear</button>
                             </div>
-                            <div id="activityLogContent" style="height: 500px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column;">
+                            <div id="activityLogContent" style="height: 280px; overflow-y: auto; font-size: 0.9em; color: #ccc; display: flex; flex-direction: column;">
                                 <div style="text-align: center; color: #888; padding: 10px;">No activity yet</div>
                             </div>
                         </div>
@@ -2237,8 +2239,6 @@
                     }
                 });
             }, 500);
-            
-            showMessage("Each player: Select a captain from your hand and click 'Set Captain'");
         }
 
         function shuffleDeck() {
@@ -2957,6 +2957,7 @@
                         updates.hasAsked = false;
                         advanceTurnCounter(nextIndex);
                         updates.turnNumber = gameState.turnNumber;
+                        addActivityLog({ actorId: nextIndex, type: 'system', publicText: `{ACTOR_POSS} turn started` });
                     }
                     
                     syncToFirebase(updates);
@@ -3004,6 +3005,7 @@
                     updates.hasAsked = false;
                     advanceTurnCounter(nextIndex);
                     updates.turnNumber = gameState.turnNumber;
+                    addActivityLog({ actorId: nextIndex, type: 'system', publicText: `{ACTOR_POSS} turn started` });
                 }
                 
                 syncToFirebase(updates);
@@ -3028,6 +3030,7 @@
                 advanceTurnCounter(nextIndex);
                 gameState.hasAsked = false;
                 gameState.newlyAcquiredCard = null; // Clear after burning player has seen it
+                addActivityLog({ actorId: nextIndex, type: 'system', publicText: `{ACTOR_POSS} turn started` });
                 updateBurnPile();
                 updateDisplay();
                 if (!onlineGame.enabled) {
@@ -3434,7 +3437,15 @@
                     `;
                 }
             } else if (gameState.phase === 'final') {
-                controlsDiv.innerHTML = '';
+                if (gameState.winnerPlayerId !== null && gameState.winnerPlayerId !== undefined) {
+                    const scores = computeFinalScores();
+                    controlsDiv.innerHTML = `
+                        <h4 style="margin: 0 0 10px 0; color: #ffd700;">Final Standings</h4>
+                        ${buildStandingsHTML(scores, true)}
+                    `;
+                } else {
+                    controlsDiv.innerHTML = '';
+                }
             }
         }
 
@@ -3607,10 +3618,11 @@
                     gameState.targetPlayer = null;
                     gameState.positionAsked = null;
                     
-                    // Show message temporarily in instructionText
-                    const instructionElement = document.getElementById('instructionText');
-                    if (instructionElement) {
-                        instructionElement.textContent = noCardsMessage;
+                    // Show message temporarily (does not affect the turn counter)
+                    showMessage(noCardsMessage);
+                    // Reset the timer to a fresh 60s since the player must now lock in or end their turn
+                    if (gameState.currentPlayerIndex === onlineGame.gamePlayerId) {
+                        startTurnTimer(60);
                     }
                     setTimeout(() => {
                         updateDisplay();
@@ -3624,11 +3636,10 @@
                     gameState.positionAsked = null;
                     gameState.hasAsked = true;
                     
-                    // Show the no-cards message in instructionText temporarily
-                    const instructionElement = document.getElementById('instructionText');
-                    if (instructionElement) {
-                        instructionElement.textContent = noCardsMessage;
-                    }
+                    // Show the no-cards message temporarily (does not affect the turn counter)
+                    showMessage(noCardsMessage);
+                    // Reset the timer to a fresh 60s since the player must now lock in or end their turn
+                    startTurnTimer(60);
                     setTimeout(() => {
                         updateDisplay();
                     }, 2500);
@@ -3776,8 +3787,7 @@
             updateDisplay();
         }
         
-        function showFinalResults() {
-            // Calculate final scores
+        function computeFinalScores() {
             const scores = gameState.players.map(player => {
                 const ovr = calculateTeamOVR(player);
                 // Find best card in hand (lowest rank number = best card) - used as "Sixth Man" tiebreaker
@@ -3802,6 +3812,39 @@
                 return a.bestHandRank - b.bestHandRank;
             });
             
+            return scores;
+        }
+        
+        function buildStandingsHTML(scores, compact) {
+            return scores.map((s, i) => {
+                // Check if tied with any adjacent player
+                const tiedWithPrev = i > 0 && s.ovr === scores[i-1].ovr;
+                const tiedWithNext = i < scores.length - 1 && s.ovr === scores[i+1].ovr;
+                const isInTie = tiedWithPrev || tiedWithNext;
+                const tieInfo = isInTie ? ` <span style="color: #aaa; font-size: 0.9em;">(Sixth Man Tiebreaker: ${s.bestHandCard ? s.bestHandCard.name + ' (' + s.bestHandCard.ovr + ')' : 'None'})</span>` : '';
+                
+                // Get player's lineup
+                const player = gameState.players[s.playerId];
+                const lineupHTML = POSITIONS.map(pos => {
+                    const card = player.lineup[pos];
+                    if (!card) return '';
+                    const penalty = calculatePositionPenalty(card, pos);
+                    return `<span style="font-size: 0.85em; margin: 2px; display: inline-block;">${card.name} (${card.ovr}${penalty > 0 ? ' -' + penalty : ''})</span>`;
+                }).filter(Boolean).join(' • ');
+                
+                return `
+                    <div style="padding: ${compact ? '10px' : '15px'}; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: ${compact ? '0.95em' : '1.1em'};">
+                        <div><strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR${tieInfo}</div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.9em;">
+                            ${lineupHTML}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showFinalResults() {
+            const scores = computeFinalScores();
             const winner = scores[0];
             
             // Add winner class to winning player's area
@@ -3829,31 +3872,7 @@
                 <h3 style="color: #00ff00; text-align: center; font-size: 1.5em; margin-top: 20px;">Winner: ${winner.player}</h3>
                 <div style="margin: 20px 0;">
                     <h4>Final Standings:</h4>
-                    ${scores.map((s, i) => {
-                        // Check if tied with any adjacent player
-                        const tiedWithPrev = i > 0 && s.ovr === scores[i-1].ovr;
-                        const tiedWithNext = i < scores.length - 1 && s.ovr === scores[i+1].ovr;
-                        const isInTie = tiedWithPrev || tiedWithNext;
-                        const tieInfo = isInTie ? ` <span style="color: #aaa; font-size: 0.9em;">(Sixth Man Tiebreaker: ${s.bestHandCard ? s.bestHandCard.name + ' (' + s.bestHandCard.ovr + ')' : 'None'})</span>` : '';
-                        
-                        // Get player's lineup
-                        const player = gameState.players[s.playerId];
-                        const lineupHTML = POSITIONS.map(pos => {
-                            const card = player.lineup[pos];
-                            if (!card) return '';
-                            const penalty = calculatePositionPenalty(card, pos);
-                            return `<span style="font-size: 0.85em; margin: 2px; display: inline-block;">${card.name} (${card.ovr}${penalty > 0 ? ' -' + penalty : ''})</span>`;
-                        }).filter(Boolean).join(' • ');
-                        
-                        return `
-                            <div style="padding: 15px; margin: 8px 0; background: ${i === 0 ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : 'rgba(255,255,255,0.1)'}; border-radius: 8px; font-size: 1.1em;">
-                                <div><strong>${i === 0 ? '👑 ' : ''}${i + 1}. ${s.player}</strong>: ${s.ovr} Team OVR${tieInfo}</div>
-                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 0.9em;">
-                                    ${lineupHTML}
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+                    ${buildStandingsHTML(scores, false)}
                 </div>
                 ${onlineGame.enabled && onlineGame.roomCode ? 
                     `<button onclick="returnToRoom()" style="width: 100%; padding: 15px; font-size: 1.2em; margin-top: 10px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;">🔄 Return to Room</button>` 
@@ -3861,6 +3880,9 @@
                 <button onclick="location.reload()" style="width: 100%; padding: 15px; font-size: 1.2em; margin-top: 10px;">🎮 New Game</button>
             `;
             showModal('🏆 Final Results');
+            
+            // Also render the results into the left panel so they remain visible after the modal is closed
+            updateControls();
         }
         
         function returnToRoom() {
@@ -4077,21 +4099,9 @@
             });
         }
 
-        let showMessageRevertTimer = null;
         function showMessage(text) {
-            const messageBox = document.getElementById('messageBox');
-            const instructionText = document.getElementById('instructionText');
-            
-            if (instructionText) {
-                instructionText.textContent = text;
-                // Auto-revert back to the turn counter after a few seconds
-                if (showMessageRevertTimer) clearTimeout(showMessageRevertTimer);
-                showMessageRevertTimer = setTimeout(() => {
-                    updatePhaseText();
-                }, 3000);
-            } else if (messageBox) {
-                messageBox.textContent = text;
-            }
+            // Transient gray messages have been removed from the UI entirely.
+            // Informational text now lives in the turn counter (gold) and Activity Log only.
         }
 
         function aiSelectCaptain(player) {
@@ -4346,7 +4356,7 @@
             }
             
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-            addActivityLog({ actorId: currentPlayer.id, type: 'system', publicText: `{ACTOR}'s time expired \u2014 AI took over the turn` });
+            addActivityLog({ actorId: currentPlayer.id, type: 'system', publicText: `{ACTOR_POSS} time expired \u2014 AI took over the turn` });
             
             if (gameState.waitingForBurn !== null) {
                 // Auto-burn first card in hand
