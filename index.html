@@ -4387,8 +4387,10 @@
                 return;
             }
             
-            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-            addActivityLog({ actorId: currentPlayer.id, type: 'system', publicText: `{ACTOR_POSS} time expired \u2014 AI took over the turn` });
+            // Determine who actually timed out: if someone needs to burn, it's THEM (not necessarily
+            // the current turn-holder) - the 20s burn timer runs for gameState.waitingForBurn.
+            const timedOutPlayerId = gameState.waitingForBurn !== null ? gameState.waitingForBurn : gameState.currentPlayerIndex;
+            addActivityLog({ actorId: timedOutPlayerId, type: 'system', publicText: `{ACTOR_POSS} time expired \u2014 AI took over the turn` });
             
             if (gameState.waitingForBurn !== null) {
                 // Auto-burn first card in hand
@@ -4401,6 +4403,7 @@
                 }
             } else {
                 // Let AI take over the entire turn
+                const currentPlayer = gameState.players[gameState.currentPlayerIndex];
                 setTimeout(() => {
                     aiTakeTurn(currentPlayer);
                 }, 1000);
