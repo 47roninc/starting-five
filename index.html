@@ -1920,8 +1920,7 @@
                         else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
                         else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold
                         else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver
-                        else if (card.ovr === 70) cardColor = 'linear-gradient(135deg, #696969 0%, #4B4B4B 100%)'; // Benchwarmer
-                        else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
+                        else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze (includes Benchwarmer)
                         
                         const penalty = !card.positions.includes(pos) ? calculatePositionPenalty(card, pos) : 0;
                         
@@ -2884,8 +2883,7 @@
                 else if (card.ovr >= 80) cardColor = 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)'; // Diamond
                 else if (card.ovr >= 78) cardColor = 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)'; // Gold (darker)
                 else if (card.ovr >= 76) cardColor = 'linear-gradient(135deg, #A9A9A9 0%, #808080 100%)'; // Silver (darker)
-                else if (card.ovr === 70) cardColor = 'linear-gradient(135deg, #696969 0%, #4B4B4B 100%)'; // Benchwarmer (dark gray)
-                else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
+                else cardColor = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze (includes Benchwarmer)
                 
                 cardDiv.style.background = cardColor;
                 
@@ -4580,8 +4578,7 @@
             if (ovr >= 80) return '#3498DB'; // Diamond
             if (ovr >= 78) return '#DAA520'; // Gold
             if (ovr >= 76) return '#A9A9A9'; // Silver
-            if (ovr === 70) return '#696969'; // Benchwarmer
-            return '#CD7F32'; // Bronze
+            return '#CD7F32'; // Bronze (includes Benchwarmer)
         }
         
         // ==================== PRESENCE TRACKING ====================
