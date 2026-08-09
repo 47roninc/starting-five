@@ -2549,6 +2549,8 @@
         }
 
         function placeCardInPosition(playerId, position) {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             const player = gameState.players[playerId];
             
             if (gameState.phase === 'captainSelection' && player.captain && !player.captainHidden) {
@@ -2655,8 +2657,23 @@
                             updates[`lineups/${playerId}`] = newLineup;
                             updates[`hands/${playerId}`] = newPlayerHand;
                             
-                            // Give card to counterclockwise player if hand not empty
-                            if (newPlayerHand.length > 0) {
+                            // Check if this lock-in completes the lineup (game over) BEFORE
+                            // giving a card to the next player - if the game is ending, skip
+                            // the give/burn mechanic entirely so nothing continues afterward.
+                            const allValues = Object.values(newLineup);
+                            const lineupCount = allValues.filter(rank => rank).length;
+                            const hasCaptain = currentSyncedState.captains && currentSyncedState.captains[playerId] ? 1 : 0;
+                            const lockedCount = lineupCount + hasCaptain;
+                            
+                            const lockedColor = getCardColor(card.ovr);
+                            addActivityLog({ actorId: playerId, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> at ${position}` });
+                            
+                            if (lockedCount >= 5) {
+                                updates.phase = 'final';
+                                updates.waitingForBurn = null;
+                                syncToFirebase(updates);
+                            } else if (newPlayerHand.length > 0) {
+                                // Give card to counterclockwise player
                                 const nextPlayerIndex = (playerId - 1 + gameState.players.length) % gameState.players.length;
                                 const nextPlayerHand = currentSyncedState.hands[nextPlayerIndex] || [];
                                 
@@ -2683,11 +2700,11 @@
                                 const givenCard = CARDS.find(c => c.rank === highestCardRank);
                                 const nextPlayer = gameState.players[nextPlayerIndex];
                                 
-                                // Add to activity log with colored OVR
-                                const lockedColor = getCardColor(card.ovr);
+                                // Add private "you gave" note with colored OVR
                                 const givenColor = givenCard ? getCardColor(givenCard.ovr) : '#ccc';
-                                addActivityLog({ actorId: playerId, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> at ${position}` });
                                 addActivityLog({ type: 'private', viewerTexts: { [playerId]: `You gave <span style="color: ${givenColor};">${givenCard ? givenCard.name + ' (' + givenCard.ovr + ')' : 'a card'}</span> to ${nextPlayer.name}` } });
+                                
+                                syncToFirebase(updates);
                             } else {
                                 // No cards to give, just draw
                                 let newDeckIndex = currentSyncedState.deckIndex || 0;
@@ -2698,24 +2715,8 @@
                                     updates.deckIndex = newDeckIndex;
                                 }
                                 
-                                // Add activity log for lock-in with no cards to give
-                                const lockedColor = getCardColor(card.ovr);
-                                addActivityLog({ actorId: playerId, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedColor};">${card.name} (${card.ovr})</span> at ${position}` });
+                                syncToFirebase(updates);
                             }
-                            
-                            // Check if player has 5 locked in (game should end)
-                            // Need to count both lineup cards AND captain
-                            const allValues = Object.values(newLineup);
-                            const lineupCount = allValues.filter(rank => rank).length;
-                            const hasCaptain = currentSyncedState.captains && currentSyncedState.captains[playerId] ? 1 : 0;
-                            const lockedCount = lineupCount + hasCaptain;
-                            
-                            if (lockedCount >= 5) {
-                                updates.phase = 'final';
-                                updates.waitingForBurn = null;
-                            }
-                            
-                            syncToFirebase(updates);
                         }
                         
                         // Clear selection but don't modify state
@@ -2734,6 +2735,15 @@
                     // Lock-in is always public knowledge (visible on the board)
                     const lockedInColor = getCardColor(card.ovr);
                     addActivityLog({ actorId: player.id, type: 'lockin', publicText: `{ACTOR} locked in <span style="color: ${lockedInColor};">${card.name} (${card.ovr})</span> at ${position}` });
+
+                    // Check if this lock-in completes the player's lineup (game over) BEFORE
+                    // giving a card to the next player - if the game is ending, skip the
+                    // give/burn mechanic entirely so nothing continues after the game ends.
+                    const lockedCount = Object.values(player.lineup).filter(c => c !== null).length;
+                    if (lockedCount >= 5) {
+                        endGame();
+                        return;
+                    }
 
                     // Give highest rank card (best card, lowest rank number) to player counterclockwise
                     let drawnCard = null;
@@ -2780,13 +2790,6 @@
                             drawnCard = gameState.deck.pop();
                             player.hand.push(drawnCard);
                         }
-                    }
-
-                    // Check if player has 5 locked in
-                    const lockedCount = Object.values(player.lineup).filter(c => c !== null).length;
-                    if (lockedCount >= 5) {
-                        endGame();
-                        return;
                     }
 
                     updateDisplay();
@@ -2927,6 +2930,8 @@
         }
 
         function burnCard(playerId, card) {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             const player = gameState.players[playerId];
             
             if (onlineGame.enabled) {
@@ -3045,6 +3050,8 @@
         }
 
         function confirmBurn() {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             if (!gameState.selectedCard || gameState.waitingForBurn === null) {
                 showMessage("Please select a card from your hand to burn");
                 return;
@@ -3514,6 +3521,8 @@
         }
 
         function executeAsk() {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             const targetPlayer = gameState.players[gameState.targetPlayer];
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
             const pos = gameState.positionAsked;
@@ -3654,6 +3663,8 @@
         }
 
         function endTurn() {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             playSound('click');
             const prevPlayer = gameState.players[gameState.currentPlayerIndex];
             gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
@@ -3728,6 +3739,11 @@
 
         function endGame() {
             gameState.phase = 'final';
+            gameState.waitingForBurn = null;
+            gameState.hasAsked = false;
+            gameState.playerNeedingAction = null;
+            gameState.selectedCard = null;
+            gameState.selectedCardPlayer = undefined;
             
             // Sync phase change to Firebase
             if (onlineGame.enabled) {
@@ -4136,9 +4152,13 @@
         }
 
         function aiTakeTurn(player) {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             // AI strategy: ALWAYS ask for positions it needs (mandatory), then lock in best card with bonuses
             // Add 2-3 second delay to make AI moves visible
             setTimeout(() => {
+                if (gameState.phase === 'final') return; // Game may have ended during the delay
+                
                 if (!gameState.hasAsked) {
                     // AI MUST ask for a position (this is mandatory)
                     const emptyPositions = POSITIONS.filter(pos => !player.lineup[pos]);
@@ -4155,10 +4175,14 @@
                         
                         // After asking, AI will burn if needed, then might lock in (2-3 second delays)
                         setTimeout(() => {
+                            if (gameState.phase === 'final') return; // Game may have ended during the delay
+                            
                             if (gameState.waitingForBurn === player.id) {
                                 aiBurnCard(player);
                             }
                             setTimeout(() => {
+                                if (gameState.phase === 'final') return; // Game may have ended during the delay
+                                
                                 if (gameState.currentPlayerIndex === player.id && Math.random() > 0.4) {
                                     aiLockInCard(player);
                                 } else {
@@ -4186,8 +4210,12 @@
         }
 
         function aiBurnCard(player) {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             // AI burns worst card (with 2 second delay to make it visible)
             setTimeout(() => {
+                if (gameState.phase === 'final') return; // Game may have ended during the delay
+                
                 const worstCard = player.hand.reduce((worst, card) => card.ovr < worst.ovr ? card : worst);
                 gameState.selectedCard = worstCard;
                 gameState.selectedCardPlayer = player.id;
@@ -4196,6 +4224,8 @@
         }
 
         function aiLockInCard(player) {
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
+            
             // AI picks best card considering bonuses
             if (player.hand.length === 0) {
                 endTurn();
@@ -4327,6 +4357,8 @@
         
         function handleTimerExpired() {
             stopTurnTimer();
+            
+            if (gameState.phase === 'final') return; // Game is over, no more actions allowed
             
             // Handle captain selection timeout
             if (gameState.phase === 'captainSelection') {
